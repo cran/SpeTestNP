@@ -1,0 +1,16 @@
+185d10f87c3b6077e9e09971faba2ffd *DESCRIPTION
+d73db383688151975af5f386d94c9c89 *NAMESPACE
+2d742d55801824aa315489dbbc14aa26 *NEWS.md
+a675713da6fd9a741342ae32ce3d232c *R/SpeTest.R
+9cab19234dfe67f2026cb0a33720c773 *R/SpeTest_Dist.R
+703bf80f45c534a8f2265def294a675d *R/SpeTest_Stat.R
+0c6bda317426a1d95dffac406c02560d *build/vignette.rds
+09fd60f76b9477ada37a9d2a1537cc2d *inst/doc/SpeTestNP.R
+4db0dba7192f28c07f194b634f9adf05 *inst/doc/SpeTestNP.Rmd
+3a5a9b3dce1642eda02bca3f54c4c253 *inst/doc/SpeTestNP.html
+77745d4b23c22705225f09d9a0c498ee *man/SpeTest.Rd
+414afaf4fbb7183152bd8c64837c3965 *man/SpeTest_Dist.Rd
+db6a0614685683911d3fd4fb09b230da *man/SpeTest_Stat.Rd
+3157b94f65bd1b3997482feb5fc5e68e *man/print.STNP.Rd
+73407c5e976b81fd53308360144304da *man/summary.STNP.Rd
+4db0dba7192f28c07f194b634f9adf05 *vignettes/SpeTestNP.Rmd

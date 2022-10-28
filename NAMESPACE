@@ -1,0 +1,10 @@
+importFrom("parallel", "detectCores", "makeCluster")
+importFrom("foreach", "foreach", "%dopar%")
+importFrom("doParallel", "registerDoParallel")
+importFrom("stats", "coefficients", "cov", "fitted", "lm", "nls",
+               "pchisq", "pnorm", "resid", "rnorm", "runif", "sd")
+exportPattern(".")
+S3method(print, STNP)
+export(print.STNP)
+S3method(summary, STNP)
+export(summary.STNP)

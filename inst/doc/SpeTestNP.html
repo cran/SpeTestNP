@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Hippolyte Boucher" />
+<meta name="author" content="Pascal Lavergne" />
+
+<meta name="date" content="2022-09-30" />
+
+<title>Nonparametric Specification Testing with SpeTestNP</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Nonparametric Specification Testing with
+SpeTestNP</h1>
+<h4 class="author">Hippolyte Boucher</h4>
+<h4 class="author">Pascal Lavergne</h4>
+<h4 class="date">2022-09-30</h4>
+
+
+<div id="TOC">
+<ul>
+<li><a href="#introduction" id="toc-introduction"><span class="toc-section-number">1</span> Introduction</a></li>
+<li><a href="#testing-for-a-parametric-specification" id="toc-testing-for-a-parametric-specification"><span class="toc-section-number">2</span> Testing for a parametric
+specification</a>
+<ul>
+<li><a href="#model" id="toc-model"><span class="toc-section-number">2.1</span> Model</a></li>
+<li><a href="#tests-principle" id="toc-tests-principle"><span class="toc-section-number">2.2</span> Tests principle</a></li>
+<li><a href="#test-statistics" id="toc-test-statistics"><span class="toc-section-number">2.3</span> Test statistics</a></li>
+<li><a href="#normalization" id="toc-normalization"><span class="toc-section-number">2.4</span> Normalization</a></li>
+<li><a href="#rejection-rules" id="toc-rejection-rules"><span class="toc-section-number">2.5</span> Rejection rules</a></li>
+<li><a href="#validity-consistency-and-power-properties" id="toc-validity-consistency-and-power-properties"><span class="toc-section-number">2.6</span> Validity, consistency and power
+properties</a></li>
+</ul></li>
+<li><a href="#using-spetestnp" id="toc-using-spetestnp"><span class="toc-section-number">3</span> Using <code>SpeTestNP</code></a>
+<ul>
+<li><a href="#installation" id="toc-installation"><span class="toc-section-number">3.1</span> Installation</a></li>
+<li><a href="#testing-with-spetestnp" id="toc-testing-with-spetestnp"><span class="toc-section-number">3.2</span> Testing with
+<code>SpeTestNP</code></a></li>
+<li><a href="#arguments-description-and-additional-features" id="toc-arguments-description-and-additional-features"><span class="toc-section-number">3.3</span> Arguments description and
+additional features</a></li>
+<li><a href="#illustration" id="toc-illustration"><span class="toc-section-number">3.4</span> Illustration</a></li>
+</ul></li>
+<li><a href="#references" id="toc-references"><span class="toc-section-number">4</span> References</a></li>
+</ul>
+</div>
+
+<div id="introduction" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Introduction</h1>
+<p>In applied work in order to evaluate the effect of a set of exogenous
+variables on an outcome it is very common to estimate a parametric model
+such as the linear model with ordinary least squares (OLS). But such
+parametric specifications may not capture the true relationship between
+outcome and exogenous variables. In fact if the chosen parametric model
+is a bad approximation of the true model then counterfactual analysis
+will be flawed. For this reason in the past forty years a literature on
+specification tests has developed in order to know if a parametric
+specification is right or wrong. <code>SpeTestNP</code> is a package
+which implements heteroskedasticity-robust specification tests of
+parametric models from Bierens (1982), Zheng (1996), Escanciano (2006),
+Lavergne and Patilea (2008), and Lavergne and Patilea (2012).</p>
+<p>Hippolyte Boucher (<a href="mailto:Hippolyte.Boucher@outlook.com">Hippolyte.Boucher@outlook.com</a>)
+is the author of <code>SpeTestNP</code> and Pascal Lavergne (<a href="mailto:lavergnetse@gmail.com">lavergnetse@gmail.com</a>) is a
+contributor. Both Hippolyte Boucher and Pascal Lavergne are maintainers
+and any question or bug should be reported to one of them. This vignette
+describes the principle behind each test available in
+<code>SpeTestNP</code>, then how to use <code>SpeTestNP</code> to test a
+parametric specification in practice with an illustration using the
+expected earnings conditional on education and age.</p>
+</div>
+<div id="testing-for-a-parametric-specification" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Testing for a
+parametric specification</h1>
+<p>In order to present the specification tests available in
+<code>SpeTestNP</code> we first describe the model being considered and
+define the null and alternative hypothesis, second we highlight the
+principle behind each test, third we derive the test statistics and
+their rejection rules (based on either the bootstrap or Gaussian
+asymptotics), and fourth we briefly discuss and compare the tests size
+and power performances.</p>
+<div id="model" class="section level2" number="2.1">
+<h2><span class="header-section-number">2.1</span> Model</h2>
+<p>Consider a sample <span class="math inline">\((y_j,x_j&#39;)_{j=1}^{n}\)</span> of independent
+observations with <span class="math inline">\(y_j\)</span> the scalar
+outcome and <span class="math inline">\(x_j\)</span> a <span class="math inline">\(k\times 1\)</span> vector of exogenous explanatory
+variables. Then as long as <span class="math inline">\(\mathbb{E}(|y_j|)&lt;+\infty\)</span> there exists
+some Borel-measurable regression function <span class="math inline">\(g(\cdot)\)</span> such that <span class="math inline">\(g(x_j)=\mathbb{E}(y_j|x_j) \ \ a.s\)</span>. That
+is the true model linking <span class="math inline">\(y_j\)</span> and
+<span class="math inline">\(x_j\)</span> writes</p>
+<p><span class="math display">\[ y_j=g(x_j)+\varepsilon_j, \qquad
+\mathbb{E}(\varepsilon_j|x_j)=0 \quad a.s\]</span></p>
+<p>for <span class="math inline">\(j=1,2,\dots,n\)</span> and where
+<span class="math inline">\(\varepsilon_j\)</span> denotes the part of
+<span class="math inline">\(y_j\)</span> which is unexplained by <span class="math inline">\(x_j\)</span> in terms of the mean. But instead in
+practice some parametric model characterized by a parametric family of
+functions <span class="math inline">\(\mathcal{F}=\{f(\cdot,\tilde{\theta}):\tilde{\theta}\in\Theta\subset\mathbb{R}^k\}\)</span>
+is considered</p>
+<p><span class="math display">\[ y_j=f(x_j,\theta)+u_j \]</span></p>
+<p>where <span class="math inline">\(\theta= \
+\underset{\tilde{\theta}\in\Theta}{Argmin} \
+\mathbb{E}((y_j-f(x_j,\tilde{\theta}))^2)\)</span> is the parameter
+which yields the best mean square error fit for this parametric model,
+and where <span class="math inline">\(u_j\)</span> is the error induced
+by this parametric model. A typical estimator of <span class="math inline">\(\theta\)</span> is the non-linear least squares
+(NLS) estimator denoted by <span class="math inline">\(\hat{\theta}\)</span>, thus when <span class="math inline">\(\mathcal{F}\)</span> is the family of linear
+functions then <span class="math inline">\(\hat{\theta}\)</span> is the
+OLS estimator. Next notice that if <span class="math inline">\(g(\cdot)\in\mathcal{F}\)</span> then <span class="math inline">\(\mathbb{E}(u_j|x_j)=0 \ a.s\)</span> or
+equivalently <span class="math inline">\(\mathbb{E}(y_j|x_j)=f(x_j,\theta)\)</span>. Indeed
+if <span class="math inline">\(g(\cdot)\in\mathcal{F}\)</span> then by
+properties of projections</p>
+<p><span class="math display">\[ g(\cdot)= \
+\underset{\tilde{g}}{Argmin} \ \mathbb{E}((y_j-\tilde{g}(x_j))^2) =\
+\underset{\tilde{g}\in\mathcal{F}}{Argmin} \
+\mathbb{E}((y_j-\tilde{g}(x_j))^2)= \
+\underset{\tilde{\theta}\in\Theta}{Argmin} \
+\mathbb{E}((y_j-f(x_j,\tilde{\theta}))^2)=f(\cdot,\theta) \]</span></p>
+<p>Consequently when modeling the true relationship between <span class="math inline">\(y\)</span> and <span class="math inline">\(x\)</span> with a parametric model, the implicit
+null hypothesis is</p>
+<p><span class="math display">\[ H_0:\mathbb{E}(u_j|x_j)=0 \quad a.s
+\]</span></p>
+<p>And the alternative hypothesis is</p>
+<p><span class="math display">\[
+H_1:\mathbb{P}(\mathbb{E}(u_j|x_j)=0)&lt;1 \]</span></p>
+<p>Equivalently the null and alternative hypothesis write</p>
+<p><span class="math display">\[H_0: g(x_j)=f(x_j,\theta) \quad a.s,
+\qquad H_1:\mathbb{P}(g(x_j)=f(x_j,\theta))&lt;1 \]</span></p>
+</div>
+<div id="tests-principle" class="section level2" number="2.2">
+<h2><span class="header-section-number">2.2</span> Tests principle</h2>
+<p>Next to construct specification tests the null hypothesis is
+reformulated into moments conditions from which statistics can be
+derived. The five reformulations of the null hypothesis are in
+order.</p>
+<div id="bierens-1982" class="section level3 unnumbered">
+<h3 class="unnumbered">Bierens (1982)</h3>
+<p>Bierens (1982) proves that the conditional moment condition of the
+null hypothesis is equivalent to an infinite number of moment conditions
+which is equivalent to an integrated conditional moment condition</p>
+<p><span class="math display">\[H_0:\mathbb{E}(u_j|x_j)=0 \quad a.s \
+\Leftrightarrow \mathbb{E}(u_j exp(i\beta&#39; x_j))=0 \ \ \forall
+\beta\in\mathbb{R}^{k}\Leftrightarrow
+\int_{\mathbb{R}^k}\left|\mathbb{E}(u_j exp(i\beta&#39;
+x_j))\right|^2d\mu(\beta)=0\]</span></p>
+<p>where <span class="math inline">\(\mu(\cdot)\)</span> is any positive
+almost everywhere measure, <span class="math inline">\(|\cdot|\)</span>
+denotes the modulus, and <span class="math inline">\(i\)</span> is the
+imaginary unit.</p>
+</div>
+<div id="zheng-1996" class="section level3 unnumbered">
+<h3 class="unnumbered">Zheng (1996)</h3>
+<p>Instead Zheng (1996) finds an equivalence between the conditional
+moment condition and an unconditional one</p>
+<p><span class="math display">\[H_0:\mathbb{E}(u_j|x_j)=0 \quad a.s \
+\Leftrightarrow\mathbb{E}(u_j\mathbb{E}(u_j|x_j)f(x_j))=0\]</span></p>
+<p>where <span class="math inline">\(f(\cdot)\)</span> denotes the
+probability density function of <span class="math inline">\(x_j\)</span>.</p>
+</div>
+<div id="escanciano-2006" class="section level3 unnumbered">
+<h3 class="unnumbered">Escanciano (2006)</h3>
+<p>Escanciano (2006) proves the equivalence between the null hypothesis,
+an infinite number of moment conditions which differ from Bierens
+(1982), and an integrated moment condition</p>
+<p><span class="math display">\[H_0:\mathbb{E}(u_j|x_j)=0 \quad a.s \
+\Leftrightarrow\mathbb{E}(u_j1\{\beta&#39; x_j\leqslant l\})=0 \ \
+\forall(t,l)\in\mathbb{S}^{k}\times \mathbb{R}\\ \Leftrightarrow
+\int_{\mathbb{S}^k\times\mathbb{R}}\mathbb{E}^2(u_j1\{\beta&#39;
+x_j\leqslant l\})f_\beta(l)d\beta dl=0\]</span></p>
+<p>where <span class="math inline">\(1\{\cdot\}\)</span> denotes the
+indicator function, <span class="math inline">\(\mathbb{S}^{k}=\{\beta\in\mathbb{R}^k:|\beta|=1\}\)</span>
+denotes the unit sphere, and <span class="math inline">\(f_\beta(\cdot)\)</span> denotes the probability
+density function of <span class="math inline">\(\beta&#39;
+x_j\)</span>.</p>
+</div>
+<div id="lavergne-and-patilea-2008" class="section level3 unnumbered">
+<h3 class="unnumbered">Lavergne and Patilea (2008)</h3>
+<p>Lavergne and Patilea (2008) show that the null hypothesis is
+equivalent to an infinite number of unconditional moment conditions</p>
+<p><span class="math display">\[H_0:\mathbb{E}(u_j|x_j)=0 \quad a.s \
+\Leftrightarrow \ \underset{||\beta||=1}{max} \
+\mathbb{E}(u_j\mathbb{E}(u_j|\beta&#39; x_j)\omega(\beta&#39;
+x_j))=0\]</span></p>
+<p>for any <span class="math inline">\(\omega(\cdot)\)</span> such that
+<span class="math inline">\(\forall \beta\in\mathbb{R}^k\)</span>, <span class="math inline">\(\omega(\beta&#39; x_j)&gt;0\)</span> on the
+support of <span class="math inline">\(\mathbb{E}(u_j|\beta&#39;
+x_j)\)</span>. This condition resembles that of Zheng (1996) with <span class="math inline">\(\beta&#39; x_j\)</span> replacing <span class="math inline">\(x_j\)</span> in an effort to remove the curse of
+dimensionality.</p>
+</div>
+<div id="lavergne-and-patilea-2012" class="section level3 unnumbered">
+<h3 class="unnumbered">Lavergne and Patilea (2012)</h3>
+<p>Finally Lavergne and Patilea (2012) prove the equivalence between the
+null and an integrated moment condition</p>
+<p><span class="math display">\[H_0:\mathbb{E}(u_j|x_j)=0 \quad a.s \
+\Leftrightarrow \int_B\mathbb{E}(\mathbb{E}^2(u_j|\beta&#39;
+x_j)f_\beta(\beta&#39; x_j))d\beta=0\]</span></p>
+<p>where <span class="math inline">\(B\subseteq \mathbb{S}^k\)</span>
+and <span class="math inline">\(f_\beta(\cdot)\)</span> denotes the
+density of <span class="math inline">\(\beta&#39; x_j\)</span>. This
+moment condition combines the integrated moments approaches of Bierens
+(1982) and Escanciano (2006) and the dimension reduction devise used in
+Lavergne and Patilea (2008).</p>
+</div>
+</div>
+<div id="test-statistics" class="section level2" number="2.3">
+<h2><span class="header-section-number">2.3</span> Test statistics</h2>
+<p>Each test relies on reformulating the null hypothesis into a moment
+condition for which an empirical counterpart exist. Thus the test
+statistics are sample analogs of the moments defining the null
+hypothesis, possibly multiplied by the sample size in order to obtain
+variation at the limit. Denote by <span class="math inline">\(\hat{\theta}\)</span> a consistent estimator of
+<span class="math inline">\(\theta\)</span> and let <span class="math inline">\(\hat{u}_j=y_j-f(x_j,\hat{\theta})\)</span> denote
+the residual for individual <span class="math inline">\(j\)</span>. The
+five test statistics are derived in order.</p>
+<div id="bierens-1982-1" class="section level3 unnumbered">
+<h3 class="unnumbered">Bierens (1982)</h3>
+<p>An empirical counterpart of the integrated conditional moment <span class="math inline">\(\int_{\mathbb{R}^k}\left|\mathbb{E}(u_j
+exp(i\beta&#39; x_j))\right|^2d\mu(\beta)\)</span> of Bierens (1982)
+is</p>
+<p><span class="math display">\[
+T_{icm}=\int_{\mathbb{R}^k}\left|\frac{1}{\sqrt{n}}\sum_{j=1}^n\hat{u}_j
+exp(i\beta&#39; x_j)\right|^2d\mu(\beta) \]</span></p>
+<p>with some positive almost everywhere measure <span class="math inline">\(\mu(\cdot)\)</span> and where <span class="math inline">\(|\cdot|\)</span> denotes the modulus. Using
+properties of the modulus and of the Fourier transform it can then be
+shown that</p>
+<p><span class="math display">\[
+T_{icm}=\frac{1}{n}\sum_{j,j&#39;}\hat{u}_j\hat{u}_{j&#39;}K(x_j-x_{j&#39;})=\frac{1}{n}\hat{u}&#39;W_{icm}\hat{u}\]</span></p>
+<p>where <span class="math inline">\(K(\cdot)\)</span> is the Fourier
+transform of <span class="math inline">\(\mu(\cdot)\)</span>, <span class="math inline">\(\hat{u}=(\hat{u}_1,\dots,\hat{u}_n)&#39;\)</span>
+is the <span class="math inline">\(n\times 1\)</span> vector of stacked
+residuals, and <span class="math inline">\(W_{icm}\)</span> is the
+matrix with entries <span class="math inline">\(K(x_j-x_{j&#39;})\)</span> for any row <span class="math inline">\(j\)</span> and column <span class="math inline">\(j&#39;\)</span>. Although this statistic can be
+used as is, <span class="math inline">\(\mu(\cdot)\)</span> is typically
+assumed to be a symmetric probability measure which is strictly positive
+almost everywhere. This simplifies the asymptotic theory and the
+derivation of the test statistic in practice. Indeed as a consequence
+the Fourier transform of <span class="math inline">\(\mu(\cdot)\)</span>
+denoted as <span class="math inline">\(K(\cdot)\)</span> is a symmetric
+bounded density. Hence candidates for <span class="math inline">\(K(\cdot)\)</span> include logistic, triangular,
+normal, student, or Cauchy densities, see Johnson, Kotz and Balakrishnan
+(1995, section 23.3) and Dreier and Kotz (2002). Furthermore to control
+for scale, we impose that either the integral of <span class="math inline">\(K(\cdot)\)</span> to the square equals one or that
+the distribution associated to <span class="math inline">\(K(\cdot)\)</span> has variance one.</p>
+</div>
+<div id="zheng-1996-1" class="section level3 unnumbered">
+<h3 class="unnumbered">Zheng (1996)</h3>
+<p>Zheng (1996) test statistic is the sample analog of <span class="math inline">\(\mathbb{E}(u_j\mathbb{E}(u_j|x_j)f(x_j))\)</span>
+which is derived by estimating both the density <span class="math inline">\(f(\cdot)\)</span> of <span class="math inline">\(x_j\)</span> and the conditional mean <span class="math inline">\(\mathbb{E}(u_j|x_j=\cdot)\)</span> with Kernels.
+For any <span class="math inline">\(\tilde{x}\in\mathbb{R}^k\)</span>
+define</p>
+<p><span class="math display">\[ \hat{f}(\tilde{x})=\frac{1}{nh^k}\sum_j
+K\left(\frac{\tilde{x}-x_j}{h}\right), \qquad
+\hat{\mathbb{E}}(u_j|x_j=\tilde{x})=\frac{1}{nh^k}\sum_j
+\frac{u_j}{\hat{f}(\tilde{x})}K\left(\frac{\tilde{x}-x_j}{h}\right)
+\]</span></p>
+<p>where <span class="math inline">\(K(\cdot)\)</span> is a Kernel
+function which is nonnegative, symmetric, bounded, continuous and which
+integrates to one, and <span class="math inline">\(h\)</span> a
+bandwidth such that <span class="math inline">\(h\underset{n\rightarrow+\infty}{\rightarrow}0\)</span>
+and <span class="math inline">\(nh^k\underset{n\rightarrow+\infty}{\rightarrow}+\infty\)</span>.
+Then the test statistic is the sample analog of the moment <span class="math inline">\(\mathbb{E}(u_j\mathbb{E}(u_j|x_j)f(x_j))\)</span></p>
+<p><span class="math display">\[ T_{zheng}=\frac{1}{n}\sum_j
+\hat{u}_j\hat{\mathbb{E}}(u_{j&#39;}|x_{j&#39;}=x_j)\hat{f}(x_j)\]</span></p>
+<p>It can be rewritten as</p>
+<p><span class="math display">\[
+T_{zheng}=\frac{1}{n(n−1)h^k}\sum_{j,j′\neq
+j}\hat{u}_j\hat{u}_{j′}K\left(\frac{x_j−x_{j′}}{h}\right)=\frac{1}{n(n−1)h^k}\hat{u}^′W_{zheng}\hat{u}\]</span></p>
+<p>where <span class="math inline">\(W_{zheng}\)</span> is a matrix
+whose diagonal elements are equal to zero and its other entries are
+equal to <span class="math inline">\(K\left(\frac{x_j−x_{j′}}{h}\right)\)</span> for
+any row <span class="math inline">\(j\)</span> any column <span class="math inline">\(j′\)</span> such that <span class="math inline">\(j\neq j′\)</span>.</p>
+</div>
+<div id="escanciano-2006-1" class="section level3 unnumbered">
+<h3 class="unnumbered">Escanciano (2006)</h3>
+<p>Escanciano (2006) test statistic is the sample analog of <span class="math inline">\(\int_{\mathbb{S}^k\times\mathbb{R}}
+\mathbb{E}^2(u_j1\{\beta&#39; x_j\leqslant l\})f_\beta(l)d\beta
+dl\)</span> times <span class="math inline">\(n\)</span> which is
+derived by approximating the density <span class="math inline">\(f_\beta(\cdot)\)</span> by a probability mass
+function. Let <span class="math inline">\(\hat{f}_\beta(l)=\frac{1}{n}\sum_r1\{\beta&#39;
+x_r=l\}\)</span> then the statistic is</p>
+<p><span class="math display">\[
+T_{esca}=\int_{\mathbb{S}^k\times\mathbb{R}}\left(\frac{1}{\sqrt{n}}\sum_j
+\hat{u}_j1\{\beta&#39; x_j\leqslant l\}\right)^2\hat{f}_\beta(l)d\beta
+dl \]</span></p>
+<p>It can be proven that it has the same form as the other test
+statistics</p>
+<p><span class="math display">\[ T_{esca} =
+\frac{1}{n}\sum_{j,j&#39;}\hat{u}_j\hat{u}_{j&#39;}\frac{1}{n}\sum_r\int_{\mathbb{S}^k}1\{\beta&#39;
+x_j\leqslant \beta&#39; x_r,\beta&#39; x_{j&#39;}\leqslant \beta&#39;
+x_r\}d\beta=\frac{1}{n}\hat{u}&#39;W_{esca}\hat{u}\]</span></p>
+<p>where <span class="math inline">\(W_{esca}\)</span> has elements
+<span class="math inline">\(\frac{1}{n}\sum_r
+W_{esca,j,j&#39;,r}\)</span> with <span class="math inline">\(W_{esca,j,j&#39;,r}=\int_{\mathbb{S}^k}1\{\beta&#39;
+x_j\leqslant \beta&#39; x_r,\beta&#39; x_{j&#39;}\leqslant \beta&#39;
+x_r\}d\beta\)</span> for any row <span class="math inline">\(j\)</span>
+and column <span class="math inline">\(j&#39;\)</span>. Approximating
+the integrals in <span class="math inline">\(W_{esca}\)</span> is
+unnecessary because</p>
+<p><span class="math display">\[
+W_{esca,j,j&#39;,r}=W_{esca,j,j&#39;,r}^{(0)}\frac{\pi^{k/2}-1}{\Gamma(k/2+1)},
+\qquad
+W_{esca,j,j&#39;,r}^{(0)}=\left|\pi-arccos\left(\frac{(x_j-x_{r})&#39;(x_{j&#39;}-x_r)}{|x_j-x_{r}||x_{j&#39;}-x_r|}\right)\right|\]</span></p>
+<p>See appendix B in Escanciano (2006) for more details. Note that <span class="math inline">\(n^3\)</span> operations are necessary to compute
+<span class="math inline">\(W_{esca}\)</span> which means that this
+statistic takes much more time to compute.</p>
+</div>
+<div id="lavergne-and-patilea-2008-1" class="section level3 unnumbered">
+<h3 class="unnumbered">Lavergne and Patilea (2008)</h3>
+<p>Lavergne and Patilea (2008) consider a sample analog of the moment
+<span class="math inline">\(\mathbb{E}(u_j\mathbb{E}(u_j|x_j)\omega(\beta&#39;
+x_j))\)</span> and replace <span class="math inline">\(\omega(\cdot)\)</span> by <span class="math inline">\(f_\beta(\cdot)\)</span> the density of <span class="math inline">\(\beta&#39; x_j\)</span>. In addition they replace
+<span class="math inline">\(\beta\)</span> by the value in the unit
+hypersphere which maximizes the moment taken to the square. This way the
+test is given the direction which best reject the null hypothesis under
+the alternative. Thus first define for any <span class="math inline">\(t\in\mathbb{S}^k\)</span></p>
+<p><span class="math display">\[
+\mathcal{Q}(\beta)=\frac{1}{n(n-1)h}\sum_{j,j&#39;\neq
+j}\hat{u}_j\hat{u}_{j&#39;}
+K\left(\frac{\beta&#39;(x_j-x_{j&#39;})}{h}\right)\]</span></p>
+<p>where <span class="math inline">\(K(\cdot)\)</span> is a bounded
+symmetric density with bounded variation, <span class="math inline">\(h\)</span> is a bandwidth such that <span class="math inline">\(h\underset{n\rightarrow
++\infty}{\longrightarrow}0\)</span> and <span class="math inline">\(\frac{(nh^2)^{\delta}}{log(n)}\underset{n\rightarrow+\infty}{\longrightarrow}+\infty\)</span>
+for some <span class="math inline">\(\delta\in(0;1)\)</span>. <span class="math inline">\(\mathcal{Q}(\beta)\)</span> cannot be directly
+used, instead define <span class="math inline">\(\hat{\beta}\)</span>
+the direction which best captures the correlation between the residuals
+and the explanatory variables</p>
+<p><span class="math display">\[\hat{\beta}= \
+\underset{\beta\in\mathbb{S}^k}{Argmax} \
+|n\sqrt{h}\mathcal{Q}(\beta)−\alpha_n 1\{\beta\neq
+\beta^*\}|\]</span></p>
+<p>where <span class="math inline">\(\beta^*\)</span> represents a
+favored direction chosen a priori, and <span class="math inline">\(\alpha_n\underset{n\rightarrow
++\infty}{\rightarrow}0\)</span> is the weight given to this favored
+direction. <span class="math inline">\(\beta^*\)</span> and <span class="math inline">\(\alpha_n\)</span> improve significantly the power
+properties of the test in small sample. Note that in practice the unit
+hypersphere <span class="math inline">\(\mathbb{S}^k\)</span> is
+approximated by a finite number of points. Thus the test statistic is
+the criterion evaluated at <span class="math inline">\(\hat{\beta}\)</span></p>
+<p><span class="math display">\[T_{pala}=\mathcal{Q}(\hat{\beta})=\frac{1}{n(n−1)h}\sum_{j,j′\neq
+j}\hat{u}_j\hat{u}_jK\left(\frac{\hat{\beta}′(x_j−x_{j′})}{h}\right)=\frac{1}{n(n−1)h}\hat{u}^′W_{pala}\hat{u}\]</span></p>
+<p>where <span class="math inline">\(W_{pala}\)</span> is a matrix with
+diagonal elements equal to zero and its other entries equal to <span class="math inline">\(K\left(\frac{\hat{β}′(x_j−x_j)}{h}\right)\)</span>
+for any row <span class="math inline">\(j\)</span> and column <span class="math inline">\(j′\)</span> such that <span class="math inline">\(j\neq j′\)</span>.</p>
+</div>
+<div id="lavergne-and-patilea-2012-1" class="section level3 unnumbered">
+<h3 class="unnumbered">Lavergne and Patilea (2012)</h3>
+<p>Finally Lavergne and Patilea (2012) use the sample analog of <span class="math inline">\(\int_B\mathbb{E}(\mathbb{E}^2(u_j|\beta&#39;
+x_j)f_\beta(\beta&#39; x_j))d\beta=0\)</span> for some <span class="math inline">\(B\subseteq\mathbb{S}^k\)</span> as a test
+statistic. To derive it notice that an empirical counterpart of <span class="math inline">\(\mathbb{E}(\mathbb{E}^2(u_j|\beta&#39;
+x_j)f_\beta(\beta&#39; x_j))\)</span> is <span class="math inline">\(\mathcal{Q}(\beta)\)</span> as defined in
+previously. Hence their test statistic which they call smooth integrated
+conditional moment statistic writes</p>
+<p><span class="math display">\[
+T_{sicm}=\int_B\mathcal{Q}(\beta)d\beta=\int_B\frac{1}{n(n-1)h}\sum_{j,j&#39;\neq
+j}\hat{u}_j\hat{u}_{j&#39;}K\left(\frac{\beta&#39;(x_j-x_{j&#39;})}{h}\right)d\beta=\frac{1}{n(n-1)h}\hat{u}&#39;W_{sicm}\hat{u}\]</span></p>
+<p>where <span class="math inline">\(W_{sicm}\)</span> has diagonal
+elements equal to zero and its other elements are equal to <span class="math inline">\(\int_BK\left(\frac{\beta&#39;(x_j-x_{j&#39;})}{h}\right)d\beta\)</span>
+for any row <span class="math inline">\(j\)</span> and any column <span class="math inline">\(j&#39;\neq j\)</span>. Clearly <span class="math inline">\(T_{sicm}\)</span> is a smooth version of <span class="math inline">\(T_{icm}\)</span> because of the bandwidth <span class="math inline">\(h\)</span>. Furthermore it is also a smooth
+version of <span class="math inline">\(T_{pala}\)</span> in the sense
+that instead of being based on the squared error in the worst direction
+of <span class="math inline">\(\beta&#39; x_j\)</span>, it is based on a
+continuum of directions. In practice to compute the integral a finite
+number of points are drawn randomly from <span class="math inline">\(B\)</span> and <span class="math inline">\(B\)</span> doesn’t have to be the whole unit
+hypersphere <span class="math inline">\(\mathbb{S}^k\)</span>. For
+instance half hyperspheres can be considered such as <span class="math inline">\(\{\beta\in\mathbb{R}^k:\beta_m\geqslant
+0,||\beta||=1\}\)</span> where <span class="math inline">\(\beta_m\)</span> denotes the <span class="math inline">\(m\)</span>-th element of the vector <span class="math inline">\(\beta\)</span>.</p>
+</div>
+</div>
+<div id="normalization" class="section level2" number="2.4">
+<h2><span class="header-section-number">2.4</span> Normalization</h2>
+<p>The five test statistics can be normalized. Not only does this
+improve the finite sample properties of the tests, but it allows to use
+Gaussian asymptotics when deciding to reject the null hypothesis with
+the tests of Zheng (1996), Lavergne and Patilea (2008), and Lavergne and
+Patilea (2012). This is extremely useful in large samples instead of
+using the bootstrap.</p>
+<p>The normalized test statistics are of the following form:</p>
+<p><span class="math display">\[ \hat{T}_{icm}=\hat{u}^′\hat{W}_
+{icm}\hat{u}, \qquad
+\hat{W}_{icm}=W_{icm}\sqrt{2\sum_{j,j′}\hat{\sigma}^2_j\hat{\sigma}^2_{j′}K^2(x_j−x_{j′})}\]</span></p>
+<p><span class="math display">\[
+\hat{T}_{zheng}=\hat{u}^′\hat{W}_{zheng}\hat{u},\qquad
+\hat{W}_{zheng}=W_{zheng}\sqrt{2\sum_{j,j′\neq
+j}\hat{\sigma}^2_j\hat{\sigma}^2_{j&#39;}K^2\left(\frac{x_j−x_{j′}}{h}\right)}\]</span></p>
+<p><span class="math display">\[
+\hat{T}_{esca}=\hat{u}′\hat{W}_{esca}\hat{u}, \qquad
+\hat{W}_{esca}=W_{esca}\sqrt{2\sum_{j,j′}\hat{\sigma}_j^2\hat{\sigma}^2_{j′}\left(\frac{1}{n}\sum_r\int_{\mathbb{S}^k}1\{\beta′x_j\leqslant
+\beta′x_r,\beta′x_{j′}⩽\beta′x_r\}d\beta\right)^2} \]</span></p>
+<p><span class="math display">\[
+\hat{T}_{pala}=\hat{u}^′\hat{W}_{pala}\hat{u}, \qquad
+\hat{W}_{pala}=W_{pala}\sqrt{2\sum_{j,j′\neq
+j}\hat{\sigma}^2_j\hat{\sigma}_{j&#39;}^2K^2\left(\frac{\hat{β}′(x_j−x_{j′})}{h}\right)}\]</span></p>
+<p><span class="math display">\[\hat{T}_{sicm}=\hat{u}^′\hat{W}_{sicm}\hat{u},
+\qquad \hat{W}_{sicm}=W_{sicm}\sqrt{2\sum_{j,j′\neq
+j}\hat{\sigma}_j^2\hat{\sigma}^2_{j&#39;}\left(\int_BK\left(\frac{\beta′(x_j−x_{j′})}{h}\right)d\beta\right)^2}\]</span></p>
+<p>where <span class="math inline">\(\hat{\sigma}_j^2\)</span> controls
+for the conditional variance of the error uj. A naive approach to the
+normalization which works very well in large sample is to directly
+replace <span class="math inline">\(\hat{\sigma}_j^2\)</span> by the
+squared residuals <span class="math inline">\(\hat{u}_j^2\)</span>.
+Another approach to the normalization is to replace <span class="math inline">\(\hat{\sigma}_j^2\)</span> by an estimator such the
+as the nonparametric kernel variance estimator of Yin, Geng, Li and Wang
+(2010) which writes</p>
+<p><span class="math display">\[
+\hat{\sigma}^2(\tilde{x})=\frac{\frac{1}{nh_v}\sum_j(y_j−\overline{y}(\tilde{x}))^2K\left(\frac{\tilde{x}−x_j}{h_v}\right)}{\frac{1}{nh_v}\sum_jK\left(\frac{\tilde{x}−x_j}{h_v}\right)},
+\qquad \overline{y}(\tilde{x})=\frac{\frac{1}{nh_v}\sum_j
+y_jK\left(\frac{\tilde{x}−x_j}{h_v}\right)}{\frac{1}{nh_v}\sum_j
+K\left(\frac{\tilde{x}−x_j}{h_v}\right)} \]</span></p>
+<p>where <span class="math inline">\(K\)</span> is a Kernel function and
+<span class="math inline">\(h_v\)</span> is a bandwidth which can be
+different from <span class="math inline">\(h\)</span>.</p>
+<p>Both the naive and nonparametric approaches to the normalization are
+implemented.</p>
+</div>
+<div id="rejection-rules" class="section level2" number="2.5">
+<h2><span class="header-section-number">2.5</span> Rejection rules</h2>
+<p>To decide whether to reject or not the null hypothesis we need to
+compute quantiles of the distribution of each statistic under the null
+conditional on <span class="math inline">\(x≡=(x_1,\dots,x_n)′\)</span>.
+Then <span class="math inline">\(H_0\)</span> is rejected at level 5% if
+the test statistic is above the quantile 95% of its distribution under
+the null. To compute these quantiles we propose two solutions.</p>
+<p>First we consider computing the quantiles using the fixed design
+bootstrap. <span class="math inline">\(x\)</span> is held fixed so for
+each test statistic their central W is held fixed, and a n×1 vector of
+residuals ˆub is drawn using the fixed design wild bootstrap of Wu
+(1986) or the smooth conditional moment bootstrap of Gozalo (1997). It
+will also control for potential heteroskedasticity. Using this
+bootstrapped vector of residuals and the maintained central matrix <span class="math inline">\(W\)</span> a bootstrapped statistic can be
+computed. After repeating this operation many times we obtain a vector
+of bootstrapped statistics. The quantiles of this vector can then be
+used to reject or not <span class="math inline">\(H_0\)</span>. As an
+example if the test we consider is that of Bierens (1982) a bootstrapped
+statistic is</p>
+<p><span class="math display">\[
+T_{icm,b}=\frac{1}{n}\hat{u}^′_bW_{icm}\hat{u}_b \]</span></p>
+<p>By repeating this operation B times we obtain B bootstrapped
+statistics <span class="math inline">\((T_{icm,b})_{b=1}^B\)</span>
+which mimic the behavior of <span class="math inline">\(T_{icm}\)</span>
+under the null hypothesis. Consequently the parametric specification
+will be rejected at level 5% if <span class="math inline">\(T_{icm}&gt;q_{95\%}\)</span> where <span class="math inline">\(q_{95\%}\)</span> is the 95% quantile of <span class="math inline">\((T_{icm,b})^B_{b=1}\)</span>. The same procedure
+can be applied to other tests and their normalized versions to decide
+whether or not to reject the null hypothesis.</p>
+<p>Second we consider using the quantiles of the standard normal. As
+mentioned, the normalized versions of the statistics of Zheng (1996),
+Lavergne and Patilea (2008), and Lavergne and Patilea (2012) are
+asymptotically standard normal. Thus if one of these normalized test
+statistics are used, we can use the quantiles of a standard normal to
+reject or not <span class="math inline">\(H_0\)</span>. As an example if
+the test we consider is that of Zheng (1996) with a normalization then
+the parametric specification will be rejected at level 5% if <span class="math inline">\(|\hat{T}_{zheng}|&gt;1.96\)</span>.</p>
+</div>
+<div id="validity-consistency-and-power-properties" class="section level2" number="2.6">
+<h2><span class="header-section-number">2.6</span> Validity, consistency
+and power properties</h2>
+<p>Each test can be proven to be valid, as in under the null hypothesis
+the probability to reject the null converges to nominal level, and to be
+consistent, as in under any fixed alternative the probability to reject
+the null converges to one.</p>
+<p>But these five tests differ significantly in terms of power in
+practice. The test of Zheng (1996) seem to be the least powerful test in
+practice, it has no power against Pitman alternatives and has difficulty
+rejecting the null when the number <span class="math inline">\(k\)</span> of exogenous variables is large. The
+test of Bierens (1982) possesses more than trivial power against Pitman
+alternatives but it also has trouble rejecting the null when <span class="math inline">\(k\)</span> is large. The test of Escanciano (2006)
+does not depend on a choice of weighting function and does not require
+numerical integration however to derive its statistic it requires <span class="math inline">\(n^3\)</span> operations making it very slow and
+hard to apply in practice. In addition its power however largely depends
+on the true alternative and is low when <span class="math inline">\(k\)</span> is large. The tests of Lavergne and
+Patilea (2008), and Lavergne and Patilea (2012) are more powerful than
+the other two when <span class="math inline">\(k\)</span> is large
+because of their use of a continuum of single index <span class="math inline">\(\beta^′x_j\)</span> to summarize the correlation
+between <span class="math inline">\(u_j\)</span> and <span class="math inline">\(x_j\)</span>. At the same time when <span class="math inline">\(k\)</span> is small the two tests are at least as
+powerful as the others. As mentioned the power of Lavergne and Patilea
+(2008) test comes from the “worst” single-index alternative whereas the
+power of Lavergne and Patilea (2012) test comes from a continuum of
+single-index alternatives. Thus in practice under the alternative the
+nature of the correlation between <span class="math inline">\(u_j\)</span> and <span class="math inline">\(x_j\)</span> will determine which of these two
+tests is more powerful.</p>
+<p>See the references for more details.</p>
+</div>
+</div>
+<div id="using-spetestnp" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Using
+<code>SpeTestNP</code></h1>
+<p>Previously we have described the principle behind the five
+nonparametric specification tests, how to derive the test statistics and
+the rejection rules, and discussed their properties. Next we show how to
+use <code>SpeTestNP</code> to test parametric models in practice, with
+first the installation, second a description of how to use the test,
+third a thorough description of the arguments of the package main
+function <code>SpeTest</code>, and fourth an illustration to determine
+the true shape of expected wages conditional on years of education and
+age.</p>
+<div id="installation" class="section level2" number="3.1">
+<h2><span class="header-section-number">3.1</span> Installation</h2>
+<p>To install <code>SpeTestNP</code> from CRAN simply run the following
+command:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">&quot;SpeTestNP&quot;</span>)</span></code></pre></div>
+<p>To install <code>SpeTestNP</code> from Github the package
+<code>devtools</code> should be installed and the following commands
+should be run:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">&quot;devtools&quot;</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">&quot;devtools&quot;</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="fu">install_github</span>(<span class="st">&quot;HippolyteBoucher/SpeTestNP&quot;</span>)</span></code></pre></div>
+<p>To choose where and how the package is installed check
+<code>help(install_github)</code> and
+<code>help(install.packages)</code>. Alternatively users can download
+the package and directly install it with the CMD. <code>SpeTestNP</code>
+requires the packages <code>stats</code> (already installed and loaded
+by default in Rstudio), <code>foreach</code>, <code>parallel</code> and
+<code>doParallel</code> (if parallel computing is used to generate the
+vector) to be installed.</p>
+</div>
+<div id="testing-with-spetestnp" class="section level2" number="3.2">
+<h2><span class="header-section-number">3.2</span> Testing with
+<code>SpeTestNP</code></h2>
+<p>Recall the true model and the model induced by the parametric
+specification characterized by <span class="math inline">\(\mathcal{F}=\{f(\cdot,\tilde{\theta}):\tilde{\theta}\in\Theta\subset\mathbb{R}^k\}\)</span></p>
+<p><span class="math display">\[ y_j=g(x_j)+\varepsilon_j, \qquad
+y_j=f(x_j,\theta)+u_j \]</span> where <span class="math inline">\(\mathbb{E}(y_j|x_j)=g(x_j) \ a.s\)</span> and
+<span class="math inline">\(\theta= \
+\underset{\tilde{\theta}\in\Theta}{Argmin} \
+\mathbb{E}((y_j-f(x_j,\tilde{\theta}))^2)\)</span>.</p>
+<p>Then to test the parametric specification or equivalently to test
+<span class="math inline">\(H_0:\mathbb{E}(u_j|x_j)=0 \ a.s\)</span> the
+function <code>SpeTest</code> of the package <code>SpeTestNP</code> can
+be directly used by filling the first argument <code>eq</code> with a
+fitted model of class <code>lm</code> or <code>nls</code>. In case the
+parametric specification is linear or can be rewritten in a linear form
+<code>eq</code> should be an object of class <code>lm</code>. In case of
+non-linear models <code>eq</code> should be an object of class
+<code>nls</code> which stands for non-linear least squares (from the
+package <code>stats</code>). Note that in order to perform the
+specification test by feeding <code>SpeTest</code> with an
+<code>nls</code> model then the arguments in <code>nls</code> must be
+given in the right order. Then by running the following command the
+parametric specification characterized by <span class="math inline">\(\mathcal{F}\)</span> is tested</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>  <span class="fu">SpeTest</span>(eq)</span></code></pre></div>
+<p>The function returns an object of class <code>STNP</code> which when
+printed with <code>print</code> or <code>print.STNP</code> returns the
+test statistic and its p-value. An object of type <code>STNP</code> is a
+list which not only contains the test statistic <code>stat</code> and
+its p-value <code>pval</code> but also the type of the test
+<code>type</code>, the rejection rule <code>rejection</code>, the test
+statistic normalization <code>norma</code>, the Kernel function denoted
+as <span class="math inline">\(K(\cdot)\)</span> used to compute the
+test statistic central matrix <code>ker</code>, the standardization
+method of test the statistic central matrix <code>knorm</code>, the type
+of bootstrap used to compute the p-value <code>boot</code>, the number
+of bootstrap samples used to compute the p-value <code>nboot</code>, the
+bandwidths <code>cch</code> and <code>hv</code>, etc… To obtain a
+summary of the test and its options the method <code>summary</code> or
+<code>summary.STNP</code> can be used on objects of class
+<code>STNP</code>.</p>
+<p>By default the test of Bierens (1982) with the standard normal
+density as the central matrix function is applied and the test p-value
+is obtained using 50 wild bootstrap samples with a naive estimator of
+the conditional variance of the errors. Among many options, by changing
+the argument <code>rejection</code> from <code>bootstrap</code> (the
+default) to <code>asymptotics</code> if <code>type = &quot;zheng&quot;</code> or
+<code>type = &quot;pala&quot;</code> or <code>type = &quot;sicm&quot;</code> the test
+p-value is then based on the asymptotic normality of these normalized
+test statistics under the null. In addition by default the test
+statistic is not normalized as in by default the denominator in <span class="math inline">\(T_{zheng}\)</span>, <span class="math inline">\(T_{pala}\)</span> and <span class="math inline">\(T_{sicm}\)</span> is set to one. This can be
+changed by setting <code>norma = &quot;naive&quot;</code> to normalize the
+statistic using a naive estimator of the errors conditional variance, or
+by setting <code>norma = &quot;np&quot;</code> to normalize the statistic using a
+nonparametric estimator of the errors conditional variance. If
+<code>rejection = &quot;bootstrap&quot;</code> setting <code>para</code> to
+<code>TRUE</code> greatly speeds up the computation of the p-value by
+deriving bootstrapped statistics in parallel. For more details refer to
+the next section or <code>help(SpeTest)</code>.</p>
+<p>Note that the functions <code>SpeTest_Stat</code> and
+<code>SpeTest_Dist</code> are also available. Both functions take
+similar arguments to <code>SpeTest</code>. <code>SpeTest_Stat</code>
+computes the specification test statistic, while
+<code>SpeTest_Dist</code> generates a vector of size <code>nboot</code>
+from the specification test statistic distribution under the null
+hypothesis using the bootstrap. The argument <code>para</code> is also
+available to <code>SpeTest_Dist</code>. <code>SpeTest_Stat</code> and
+<code>SpeTest_Dist</code> allow to easily perform simulation
+exercises.</p>
+</div>
+<div id="arguments-description-and-additional-features" class="section level2" number="3.3">
+<h2><span class="header-section-number">3.3</span> Arguments description
+and additional features</h2>
+<p>To be more specific about the arguments of the function
+<code>SpeTest</code>:</p>
+<ul>
+<li><p>Argument <code>eq</code> should be the fitted parametric model of
+class <code>lm</code> or <code>nls</code>of the parametric specification
+of interest <span class="math inline">\(\mathcal{F}\)</span></p></li>
+<li><p>Argument <code>type</code> refers to the type of the test</p>
+<p>If <code>type = &quot;icm&quot;</code> the test of Bierens (1982) is performed
+(default)</p>
+<p>If <code>type = &quot;zheng&quot;</code> the test of Zheng (1996) is
+performed</p>
+<p>If <code>type = &quot;esca&quot;</code> the test of Escanciano (2006) is
+performed, significantly increases computing time</p>
+<p>If <code>type = &quot;pala&quot;</code> the test of Lavergne and Patilea (2008)
+is performed</p>
+<p>If <code>type = &quot;sicm&quot;</code> the test of Lavergne and Patilea (2012)
+is performed</p></li>
+<li><p>Argument <code>rejection</code> refers to the rejection rule</p>
+<p>If <code>rejection = &quot;bootstrap&quot;</code> the p-value of the test is
+based on the bootstrap (default)</p>
+<p>If <code>rejection = &quot;asymptotics&quot;</code> and
+<code>type = &quot;zheng&quot;</code> or <code>type = &quot;esca&quot;</code> or
+<code>type = &quot;sicm&quot;</code> the p-value of the test is based on
+asymptotic normality of the normalized version of one of these test
+statistic under the null hypothesis</p>
+<p>If <code>type = &quot;icm&quot;</code> or <code>type = &quot;esca&quot;</code> the
+argument <code>rejection</code> is ignored and the p-value is based on
+the bootstrap</p></li>
+<li><p>Argument <code>norma</code> refers to the normalization of the
+test statistic</p>
+<p>If <code>norma = &quot;no&quot;</code> the test statistic is not normalized
+(default)</p>
+<p>If <code>norma = &quot;naive&quot;</code> the test statistic is normalized with
+a naive estimator of the errors variance</p>
+<p>If <code>norma = &quot;np&quot;</code> the test statistic is normalized with a
+nonparametric estimator of the errors variance</p></li>
+<li><p>Argument <code>boot</code> refers to the bootstrap method used to
+compute the test p-value when <code>rejection = &quot;bootstrap&quot;</code></p>
+<p>If <code>boot = &quot;wild&quot;</code> the wild bootstrap of Wu (1986) is used
+(default)</p>
+<p>If <code>boot = &quot;smooth&quot;</code> the smooth conditional moments
+bootstrap of Gozalo (1997) is used</p></li>
+<li><p>Argument <code>nboot</code> is the number of bootstraps used to
+compute the test p-value, by default `nboot = 50}</p></li>
+<li><p>Argument <code>para</code> determines if parallel computing is
+used or not when <code>rejection = &quot;bootstrap&quot;</code></p>
+<p>If <code>para = FALSE</code> parallel computing is not used to
+generate the bootstrap samples to compute the test p-value (default)</p>
+<p>If <code>para = TRUE</code> parallel computing is used to generate
+the bootstrap samples to compute the test p-value, significantly
+decreases computing time, makes use of all CPU cores except one</p></li>
+<li><p>Argument <code>ker</code> refers to the Kernel function used in
+the central matrix and for the nonparametric covariance estimator if
+there is any</p>
+<p>If <code>ker = &quot;normal&quot;</code> the central matrix Kernel function is
+the normal p.d.f (default)</p>
+<p>If <code>ker = &quot;triangle&quot;</code> the central matrix Kernel function
+is the triangular p.d.f</p>
+<p>If <code>ker = &quot;logistic&quot;</code> the central matrix Kernel function
+is the logistic p.d.f</p>
+<p>If <code>ker = &quot;sinc&quot;</code> the central matrix Kernel function is
+the sine cardinal function</p></li>
+<li><p>Argument <code>knorm</code> refers to the normalization of the
+Kernel function</p>
+<p>If <code>knorm = &quot;sd&quot;</code> then the standard deviation using the
+Kernel function equals 1 (default)</p>
+<p>If <code>knorm =&quot;sq&quot;</code> then the integral of the squared Kernel
+function equals 1</p></li>
+<li><p>Argument <code>cch</code> is the central matrix Kernel
+bandwidth</p>
+<p>If <code>type = &quot;icm&quot;</code> or <code>type = &quot;esca&quot;</code> then
+<code>cch</code> always equals <code>1</code></p>
+<p>If <code>type = &quot;zheng&quot;</code> the <code>&quot;default&quot;</code> bandwidth
+is the scaled rule of thumb: <code>cch = 1.06*n^(-1/5)</code></p>
+<p>If <code>type = &quot;sicm&quot;</code> and <code>type = &quot;pala&quot;</code> the
+<code>&quot;default&quot;</code> bandwidth is the scaled rule of thumb:
+<code>cch = 1.06*n^(-1/(4+k))</code> where <code>k</code> is the number
+of regressors</p>
+<p>The user may change the bandwidth when <code>type = &quot;zheng&quot;</code>,
+<code>type = &quot;sicm&quot;</code> or <code>type = &quot;pala&quot;</code>.</p></li>
+<li><p>Argument <code>hv</code> is the bandwidth the nonparametric
+errors covariance estimator when <code>norma = &quot;np&quot;</code> or
+<code>rejection = &quot;bootstrap&quot;</code> and
+<code>boot = &quot;smooth&quot;</code></p>
+<p>By <code>&quot;default&quot;</code> the bandwidth is the scaled rule of thumb
+<code>hv = 1.06*n^(-1/(4+k))</code></p></li>
+<li><p>Argument <code>nbeta</code> refers to the number of elements
+<span class="math inline">\(\beta\)</span> used to represent the unit
+hypersphere <span class="math inline">\(\mathcal{S}^k\)</span> when
+<code>type = &quot;pala&quot;</code> or <code>type = &quot;sicm&quot;</code></p>
+<p>Computing time increases as <code>nbeta</code> gets larger</p>
+<p>By <code>&quot;default&quot;</code> it is equal to 20 times the square root of
+the number of exogenous control variables</p></li>
+<li><p>Argument <code>direct</code> refers to the default “directions”
+for the tests of Lavergne and Patilea (2008) and Lavergne and Patilea
+(2012)</p>
+<p>If <code>type = &quot;pala&quot;</code>, <code>direct</code> is the favored
+direction for <span class="math inline">\(\beta\)</span>, by
+<code>&quot;default&quot;</code> it is the OLS estimator if
+<code>class(eq) = &quot;lm&quot;</code></p>
+<p>If <code>type = &quot;sicm&quot;</code>, <code>direct</code> is the initial
+direction for <span class="math inline">\(\beta\)</span>. This direction
+should be a vector of <code>0</code> (for no direction), <code>1</code>
+(for positive direction) and <code>-1</code> (for negative
+direction)</p>
+<p>For example, <code>c(1,-1,0)</code> indicates that the user thinks
+that the 1st regressor has a positive effect on the dependent variable,
+that the 2nd regressor has a negative effect on the dependent variable,
+and that he has no idea about the effect of the 3rd regressor</p>
+<p>By <code>&quot;default&quot;</code> no direction is given to the
+hypersphere</p></li>
+<li><p>Argument <code>alphan</code> refers to the weight given to the
+favored direction for <span class="math inline">\(\beta\)</span> when
+<code>type = &quot;pala&quot;</code></p>
+<p>By <code>&quot;default&quot;</code> it is equal to
+<code>log(n)*n^(-3/2)</code></p></li>
+</ul>
+<p>Before changing the default options of arguments <code>norma</code>,
+<code>direct</code> and <code>alphan</code> we strongly advise the user
+to read the tests references.</p>
+</div>
+<div id="illustration" class="section level2" number="3.4">
+<h2><span class="header-section-number">3.4</span> Illustration</h2>
+<p>To finish we use data on 1,000 individuals from the Current
+Population Survey as in Stock and Watson (2007) to find the true shape
+of their expected earnings conditional on their years of education and
+their age using the test of Bierens (1982).</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>    <span class="fu">library</span>(SpeTestNP)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">library</span>(AER)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="do">### Loading the data and taking a first look</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">data</span>( CPSSW8 )</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summary</span> ( CPSSW8 )</span></code></pre></div>
+<pre><code>#&gt;     earnings         gender           age              region     
+#&gt;  Min.   : 2.003   male  :34348   Min.   :21.00   Northeast:12371  
+#&gt;  1st Qu.:11.058   female:27047   1st Qu.:33.00   Midwest  :15136  
+#&gt;  Median :16.250                  Median :41.00   South    :18963  
+#&gt;  Mean   :18.435                  Mean   :41.23   West     :14925  
+#&gt;  3rd Qu.:23.558                  3rd Qu.:49.00                    
+#&gt;  Max.   :72.115                  Max.   :64.00                    
+#&gt;    education    
+#&gt;  Min.   : 6.00  
+#&gt;  1st Qu.:12.00  
+#&gt;  Median :13.00  
+#&gt;  Mean   :13.64  
+#&gt;  3rd Qu.:16.00  
+#&gt;  Max.   :20.00</code></pre>
+<p>Thus the dependent variable we consider is earnings and the
+explanatory variables we use to build the conditional expectation are
+education and age. First we fit a linear specification of conditional
+earnings.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>    lm_lin <span class="ot">&lt;-</span> <span class="fu">lm</span>( earnings <span class="sc">~</span> age <span class="sc">+</span> education,</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>                      <span class="at">data =</span> CPSSW8[<span class="dv">1</span><span class="sc">:</span><span class="dv">1000</span>,] )</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summary</span> ( lm_lin )</span></code></pre></div>
+<pre><code>#&gt; 
+#&gt; Call:
+#&gt; lm(formula = earnings ~ age + education, data = CPSSW8[1:1000, 
+#&gt;     ])
+#&gt; 
+#&gt; Residuals:
+#&gt;     Min      1Q  Median      3Q     Max 
+#&gt; -27.313  -6.464  -1.445   4.804  42.092 
+#&gt; 
+#&gt; Coefficients:
+#&gt;              Estimate Std. Error t value Pr(&gt;|t|)    
+#&gt; (Intercept) -14.18639    2.10661  -6.734 2.78e-11 ***
+#&gt; age           0.15846    0.02747   5.767 1.07e-08 ***
+#&gt; education     1.93904    0.12286  15.782  &lt; 2e-16 ***
+#&gt; ---
+#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+#&gt; 
+#&gt; Residual standard error: 9.465 on 997 degrees of freedom
+#&gt; Multiple R-squared:  0.2176, Adjusted R-squared:  0.216 
+#&gt; F-statistic: 138.7 on 2 and 997 DF,  p-value: &lt; 2.2e-16</code></pre>
+<p>Both variables are very significant. Then we perform two tests of the
+linear specification, the bootstrap test of Bierens (1982) using the
+bootstrap decision rule, and the asymptotic test of Zheng (1996) with a
+naive normalization.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>    <span class="fu">SpeTest</span>( lm_lin , <span class="at">type =</span> <span class="st">&quot;icm&quot;</span> , <span class="at">rejection =</span> <span class="st">&quot;bootstrap&quot;</span> )</span></code></pre></div>
+<pre><code>#&gt; 
+#&gt;   Bierens (1982) integrated conditional moment test 
+#&gt; 
+#&gt;   Test statistic :  27.31333 
+#&gt;   Bootstrap p-value :  0 
+#&gt; </code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>    <span class="fu">SpeTest</span>( lm_lin , <span class="at">type =</span> <span class="st">&quot;zheng&quot;</span> , <span class="at">rejection =</span> <span class="st">&quot;asymptotics&quot;</span> )</span></code></pre></div>
+<pre><code>#&gt; 
+#&gt;   Zheng (1996) test 
+#&gt; 
+#&gt;   Normalized test statistic :  1.47353 
+#&gt;   Asymptotic p-value :  0.0703 
+#&gt; </code></pre>
+<p>The linear specification is rejected at level below 1% for the test
+of Bierens (1982) and at level below 10% for the test of Zheng (1996).
+So we fit a quadratic specification and perform the same tests.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>    lm_quad <span class="ot">&lt;-</span> <span class="fu">lm</span>( earnings <span class="sc">~</span> age <span class="sc">+</span> <span class="fu">I</span>(age<span class="sc">^</span><span class="dv">2</span>) <span class="sc">+</span> education <span class="sc">+</span> <span class="fu">I</span>(education<span class="sc">^</span><span class="dv">2</span>),</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>                      <span class="at">data =</span> CPSSW8[<span class="dv">1</span><span class="sc">:</span><span class="dv">1000</span>,] )</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summary</span>( lm_quad )</span></code></pre></div>
+<pre><code>#&gt; 
+#&gt; Call:
+#&gt; lm(formula = earnings ~ age + I(age^2) + education + I(education^2), 
+#&gt;     data = CPSSW8[1:1000, ])
+#&gt; 
+#&gt; Residuals:
+#&gt;     Min      1Q  Median      3Q     Max 
+#&gt; -32.167  -6.242  -1.412   4.665  41.753 
+#&gt; 
+#&gt; Coefficients:
+#&gt;                 Estimate Std. Error t value Pr(&gt;|t|)    
+#&gt; (Intercept)    -3.353005   8.633125  -0.388  0.69781    
+#&gt; age             1.011953   0.212083   4.772  2.1e-06 ***
+#&gt; I(age^2)       -0.010051   0.002456  -4.093  4.6e-05 ***
+#&gt; education      -2.079218   1.041245  -1.997  0.04611 *  
+#&gt; I(education^2)  0.140968   0.036501   3.862  0.00012 ***
+#&gt; ---
+#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+#&gt; 
+#&gt; Residual standard error: 9.323 on 995 degrees of freedom
+#&gt; Multiple R-squared:  0.2424, Adjusted R-squared:  0.2393 
+#&gt; F-statistic: 79.58 on 4 and 995 DF,  p-value: &lt; 2.2e-16</code></pre>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>    <span class="fu">SpeTest</span>( lm_quad , <span class="at">type =</span> <span class="st">&quot;icm&quot;</span> , <span class="at">rejection =</span> <span class="st">&quot;bootstrap&quot;</span> )</span></code></pre></div>
+<pre><code>#&gt; 
+#&gt;   Bierens (1982) integrated conditional moment test 
+#&gt; 
+#&gt;   Test statistic :  1.45746 
+#&gt;   Bootstrap p-value :  0.1 
+#&gt; </code></pre>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>    <span class="fu">SpeTest</span>( lm_quad , <span class="at">type =</span> <span class="st">&quot;zheng&quot;</span> , <span class="at">rejection =</span> <span class="st">&quot;asymptotics&quot;</span>)</span></code></pre></div>
+<pre><code>#&gt; 
+#&gt;   Zheng (1996) test 
+#&gt; 
+#&gt;   Normalized test statistic :  -0.98736 
+#&gt;   Asymptotic p-value :  0.16173 
+#&gt; </code></pre>
+<p>Both age and education to the square are very significant. In
+addition the p-values of both tests are above 15% so we cannot reject
+the quadratic specification. Finally we test a highly non-linear
+specification with age, age to the square, education, education to the
+square, and their products included as controls:</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>    lm_nlin <span class="ot">&lt;-</span> <span class="fu">lm</span>( earnings <span class="sc">~</span> age <span class="sc">+</span> <span class="fu">I</span>(age<span class="sc">^</span><span class="dv">2</span>) <span class="sc">+</span> education <span class="sc">+</span> <span class="fu">I</span>(education<span class="sc">^</span><span class="dv">2</span>) </span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>                       <span class="sc">+</span> <span class="fu">I</span>(education<span class="sc">*</span>age) <span class="sc">+</span> <span class="fu">I</span>(education<span class="sc">^</span><span class="dv">2</span><span class="sc">*</span>age)</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>                       <span class="sc">+</span> <span class="fu">I</span>(education<span class="sc">*</span>age<span class="sc">^</span><span class="dv">2</span>) <span class="sc">+</span> <span class="fu">I</span>(education<span class="sc">^</span><span class="dv">2</span><span class="sc">*</span>age<span class="sc">^</span><span class="dv">2</span>),</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>                       <span class="at">data=</span> CPSSW8[<span class="dv">1</span><span class="sc">:</span><span class="dv">1000</span>,] )</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summary</span>( lm_nlin )</span></code></pre></div>
+<pre><code>#&gt; 
+#&gt; Call:
+#&gt; lm(formula = earnings ~ age + I(age^2) + education + I(education^2) + 
+#&gt;     I(education * age) + I(education^2 * age) + I(education * 
+#&gt;     age^2) + I(education^2 * age^2), data = CPSSW8[1:1000, ])
+#&gt; 
+#&gt; Residuals:
+#&gt;     Min      1Q  Median      3Q     Max 
+#&gt; -33.135  -6.212  -1.485   4.515  41.920 
+#&gt; 
+#&gt; Coefficients:
+#&gt;                          Estimate Std. Error t value Pr(&gt;|t|)
+#&gt; (Intercept)             6.006e+01  1.334e+02   0.450    0.653
+#&gt; age                    -3.545e-01  6.060e+00  -0.058    0.953
+#&gt; I(age^2)               -1.043e-02  6.707e-02  -0.155    0.876
+#&gt; education              -9.404e+00  1.924e+01  -0.489    0.625
+#&gt; I(education^2)          3.335e-01  6.815e-01   0.489    0.625
+#&gt; I(education * age)      1.277e-01  8.738e-01   0.146    0.884
+#&gt; I(education^2 * age)   -2.053e-03  3.093e-02  -0.066    0.947
+#&gt; I(education * age^2)    6.633e-04  9.669e-03   0.069    0.945
+#&gt; I(education^2 * age^2) -4.410e-05  3.420e-04  -0.129    0.897
+#&gt; 
+#&gt; Residual standard error: 9.316 on 991 degrees of freedom
+#&gt; Multiple R-squared:  0.2467, Adjusted R-squared:  0.2406 
+#&gt; F-statistic: 40.56 on 8 and 991 DF,  p-value: &lt; 2.2e-16</code></pre>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>    <span class="fu">SpeTest</span>( lm_nlin , <span class="at">type =</span> <span class="st">&quot;icm&quot;</span> , <span class="at">rejection =</span> <span class="st">&quot;bootstrap&quot;</span> )</span></code></pre></div>
+<pre><code>#&gt; 
+#&gt;   Bierens (1982) integrated conditional moment test 
+#&gt; 
+#&gt;   Test statistic :  0.02541 
+#&gt;   Bootstrap p-value :  0.78 
+#&gt; </code></pre>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>    <span class="fu">SpeTest</span>( lm_nlin , <span class="at">type =</span> <span class="st">&quot;zheng&quot;</span> , <span class="at">rejection =</span> <span class="st">&quot;asymptotics&quot;</span>)</span></code></pre></div>
+<pre><code>#&gt; 
+#&gt;   Zheng (1996) test 
+#&gt; 
+#&gt;   Normalized test statistic :  -1.8227 
+#&gt;   Asymptotic p-value :  0.03417 
+#&gt; </code></pre>
+<p>This time none of the variables are considered (individually)
+significant. This does not mean that this specification is wrong, in
+fact it nests the quadratic specification. Note that the p-value of the
+test of Bierens (1982) is very high while the p-value of asymptotic test
+of Zheng (1996) is 3%. This difference can be explained by the fact that
+both tests have important size distortions when the number of
+explanatory variables is “large”. Thus we perform a final check with the
+asymptotic tests of Lavergne and Patilea (2008) and Lavergne and Patilea
+(2012).</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>    <span class="fu">SpeTest</span>( lm_nlin, <span class="at">type =</span> <span class="st">&quot;pala&quot;</span>, <span class="at">rejection =</span> <span class="st">&quot;asymptotics&quot;</span>, <span class="at">nbeta =</span> <span class="dv">40</span> )</span></code></pre></div>
+<pre><code>#&gt; 
+#&gt;   Lavergne and Patilea (2008) test 
+#&gt; 
+#&gt;   Normalized test statistic :  -0.8568 
+#&gt;   Asymptotic p-value :  0.19578 
+#&gt; </code></pre>
+<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>    <span class="fu">SpeTest</span>( lm_nlin, <span class="at">type =</span> <span class="st">&quot;pala&quot;</span>, <span class="at">rejection =</span> <span class="st">&quot;bootstrap&quot;</span> , <span class="at">nboot =</span> <span class="dv">10</span> , <span class="at">nbeta =</span> <span class="dv">10</span> )</span></code></pre></div>
+<pre><code>#&gt; 
+#&gt;   Lavergne and Patilea (2008) test 
+#&gt; 
+#&gt;   Test statistic :  -96.46926 
+#&gt;   Bootstrap p-value :  0.3 
+#&gt; </code></pre>
+<p>Both p-values are high so we cannot reject this highly non-linear
+specification.</p>
+</div>
+</div>
+<div id="references" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> References</h1>
+<p>H.J. Bierens (1982), <a href="https://www.sciencedirect.com/science/article/pii/0304407682901051">“Consistent
+Model Specification Test”</a>, <em>Journal of Econometrics</em>, 20 (1),
+105-134</p>
+<p>I. Dreier and S. Kotz (2002), <a href="https://www.sciencedirect.com/science/article/abs/pii/S0167715202000329">“A
+note on the characteristic function of the t-distribution”</a>,
+<em>Statistics &amp; Probability Letters</em>, 57 (3), 221-224</p>
+<p>J.C. Escanciano (2006), <a href="https://www.jstor.org/stable/4093212">“A Consistent Diagnostic
+Test for Regression Models Using Projections”</a>, <em>Econometric
+Theory</em>, 22 (6), 1030-1051</p>
+<p>P.L. Gozalo (1997), <a href="https://www.sciencedirect.com/science/article/pii/S0304407697865712">“Nonparametric
+Bootstrap Analysis with Applications to Demographic Effects in Demand
+Functions”</a>, <em>Journal of Econometrics</em>, 81 (2), 357-393</p>
+<p>Johnson, Kotz and Balakrishnan (1995), <a href="https://www.wiley.com/en-us/Continuous+Univariate+Distributions%2C+Volume+2%2C+2nd+Edition-p-9780471584940">“Continuous
+Univariate Distributions”</a>, volume 2, <em>Wiley Series in Probability
+and Statistics: Applied Probability and Statistics</em>, Wiley &amp;
+Sons</p>
+<p>P. Lavergne and V. Patilea (2008), <a href="https://www.sciencedirect.com/science/article/pii/S0304407607001601">“Breaking
+the Curse of Dimensionality in Nonparametric Testing”</a>, <em>Journal
+of Econometrics</em>, 143 (1), 103-122</p>
+<p>P. Lavergne and V. Patilea (2012), <a href="https://www.tandfonline.com/doi/full/10.1198/jbes.2011.07152">“One
+for All and All for One: Regression Checks with Many Regressors”</a>,
+<em>Journal of Business &amp; Economic Statistics</em>, 30 (1),
+41-52</p>
+<p>J.H. Stock and M.W. Watson (2006), <a href="https://www.nber.org/papers/w12324">“Why Has U.S. Inflation Become
+Harder to Forecast?”</a>, <em>Journal of Money, Credit and Banking</em>,
+39 (1), 3-33</p>
+<p>C.F.J. Wu (1986) <a href="https://www.jstor.org/stable/2241454">“Jackknife, bootstrap and
+other resampling methods in regression analysis (with discussion)”</a>,
+<em>National Bureau of Economic Research Working Paper</em></p>
+<p>J. Yin, Z. Geng, R. Li, H. Wang (2010), <a href="https://www.jstor.org/stable/24309002">“Nonparametric covariance
+model”</a>, <em>Statistica Sinica</em>, 20 (1), 469-479</p>
+<p>J.X. Zheng (1996), <a href="https://econpapers.repec.org/article/eeeeconom/v_3a75_3ay_3a1996_3ai_3a2_3ap_3a263-289.htm">“A
+Consistent Test of Functional Form via Nonparametric Estimation
+Techniques”</a>, <em>Journal of Econometrics</em>, 75 (2), 263-289</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

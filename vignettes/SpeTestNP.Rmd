@@ -1,0 +1,463 @@
+---
+title: "Nonparametric Specification Testing with SpeTestNP"
+author: 
+  - Hippolyte Boucher
+  - Pascal Lavergne
+date: "2022-09-30"
+output:
+  html_vignette:
+    toc: true
+    number_sections: true
+    toc_depth: 2
+vignette: >
+  %\VignetteIndexEntry{Nonparametric Specification Testing with SpeTestNP}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, comment = "#>")
+```
+
+# Introduction
+
+In applied work in order to evaluate the effect of a set of exogenous variables on an outcome it is very common to estimate a parametric model such as the linear model with ordinary least squares (OLS). But such parametric specifications may not capture the true relationship between outcome and exogenous variables. In fact if the chosen parametric model is a bad approximation of the true model then counterfactual analysis will be flawed. For this reason in the past forty years a literature on specification tests has developed in order to know if a parametric specification is right or wrong. `SpeTestNP` is a package which implements heteroskedasticity-robust specification tests of parametric models from Bierens (1982), Zheng (1996), Escanciano (2006), Lavergne and Patilea (2008), and Lavergne and Patilea (2012).
+
+Hippolyte Boucher ([Hippolyte.Boucher\@outlook.com](mailto:Hippolyte.Boucher@outlook.com)) is the author of `SpeTestNP` and Pascal Lavergne ([lavergnetse\@gmail.com](mailto:lavergnetse@gmail.com)) is a contributor. Both Hippolyte Boucher and Pascal Lavergne are maintainers and any question or bug should be reported to one of them. This vignette describes the principle behind each test available in `SpeTestNP`, then how to use `SpeTestNP` to test a parametric specification in practice with an illustration using the expected earnings conditional on education and age.
+
+# Testing for a parametric specification
+
+In order to present the specification tests available in `SpeTestNP` we first describe the model being considered and define the null and alternative hypothesis, second we highlight the principle behind each test, third we derive the test statistics and their rejection rules (based on either the bootstrap or Gaussian asymptotics), and fourth we briefly discuss and compare the tests size and power performances.
+
+## Model
+
+Consider a sample $(y_j,x_j')_{j=1}^{n}$ of independent observations with $y_j$ the scalar outcome and $x_j$ a $k\times 1$ vector of exogenous explanatory variables. Then as long as $\mathbb{E}(|y_j|)<+\infty$ there exists some Borel-measurable regression function $g(\cdot)$ such that $g(x_j)=\mathbb{E}(y_j|x_j) \ \ a.s$. That is the true model linking $y_j$ and $x_j$ writes
+
+$$ y_j=g(x_j)+\varepsilon_j, \qquad \mathbb{E}(\varepsilon_j|x_j)=0 \quad a.s$$
+
+for $j=1,2,\dots,n$ and where $\varepsilon_j$ denotes the part of $y_j$ which is unexplained by $x_j$ in terms of the mean. But instead in practice some parametric model characterized by a parametric family of functions $\mathcal{F}=\{f(\cdot,\tilde{\theta}):\tilde{\theta}\in\Theta\subset\mathbb{R}^k\}$ is considered
+
+$$ y_j=f(x_j,\theta)+u_j $$
+
+where $\theta= \ \underset{\tilde{\theta}\in\Theta}{Argmin} \ \mathbb{E}((y_j-f(x_j,\tilde{\theta}))^2)$ is the parameter which yields the best mean square error fit for this parametric model, and where $u_j$ is the error induced by this parametric model. A typical estimator of $\theta$ is the non-linear least squares (NLS) estimator denoted by $\hat{\theta}$, thus when $\mathcal{F}$ is the family of linear functions then $\hat{\theta}$ is the OLS estimator. Next notice that if $g(\cdot)\in\mathcal{F}$ then $\mathbb{E}(u_j|x_j)=0 \ a.s$ or equivalently $\mathbb{E}(y_j|x_j)=f(x_j,\theta)$. Indeed if $g(\cdot)\in\mathcal{F}$ then by properties of projections
+
+$$ g(\cdot)= \ \underset{\tilde{g}}{Argmin} \ \mathbb{E}((y_j-\tilde{g}(x_j))^2) =\ \underset{\tilde{g}\in\mathcal{F}}{Argmin} \ \mathbb{E}((y_j-\tilde{g}(x_j))^2)= \ \underset{\tilde{\theta}\in\Theta}{Argmin} \ \mathbb{E}((y_j-f(x_j,\tilde{\theta}))^2)=f(\cdot,\theta) $$
+
+Consequently when modeling the true relationship between $y$ and $x$ with a parametric model, the implicit null hypothesis is
+
+$$ H_0:\mathbb{E}(u_j|x_j)=0 \quad a.s $$
+
+And the alternative hypothesis is
+
+$$ H_1:\mathbb{P}(\mathbb{E}(u_j|x_j)=0)<1 $$
+
+Equivalently the null and alternative hypothesis write
+
+$$H_0: g(x_j)=f(x_j,\theta) \quad a.s, \qquad H_1:\mathbb{P}(g(x_j)=f(x_j,\theta))<1 $$
+
+## Tests principle
+
+Next to construct specification tests the null hypothesis is reformulated into moments conditions from which statistics can be derived. The five reformulations of the null hypothesis are in order.
+
+### Bierens (1982) {-}
+
+Bierens (1982) proves that the conditional moment condition of the null hypothesis is equivalent to an infinite number of moment conditions which is equivalent to an integrated conditional moment condition
+
+$$H_0:\mathbb{E}(u_j|x_j)=0 \quad a.s \ \Leftrightarrow \mathbb{E}(u_j exp(i\beta' x_j))=0 \ \ \forall \beta\in\mathbb{R}^{k}\Leftrightarrow \int_{\mathbb{R}^k}\left|\mathbb{E}(u_j exp(i\beta' x_j))\right|^2d\mu(\beta)=0$$
+
+where $\mu(\cdot)$ is any positive almost everywhere measure, $|\cdot|$ denotes the modulus, and $i$ is the imaginary unit.
+
+### Zheng (1996) {-}
+
+Instead Zheng (1996) finds an equivalence between the conditional moment condition and an unconditional one
+
+$$H_0:\mathbb{E}(u_j|x_j)=0 \quad a.s \ \Leftrightarrow\mathbb{E}(u_j\mathbb{E}(u_j|x_j)f(x_j))=0$$
+
+where $f(\cdot)$ denotes the probability density function of $x_j$.
+
+### Escanciano (2006) {-}
+
+Escanciano (2006) proves the equivalence between the null hypothesis, an infinite number of moment conditions which differ from Bierens (1982), and an integrated moment condition
+
+$$H_0:\mathbb{E}(u_j|x_j)=0 \quad a.s \ \Leftrightarrow\mathbb{E}(u_j1\{\beta' x_j\leqslant l\})=0 \ \ \forall(t,l)\in\mathbb{S}^{k}\times \mathbb{R}\\ \Leftrightarrow \int_{\mathbb{S}^k\times\mathbb{R}}\mathbb{E}^2(u_j1\{\beta' x_j\leqslant l\})f_\beta(l)d\beta dl=0$$
+
+where $1\{\cdot\}$ denotes the indicator function, $\mathbb{S}^{k}=\{\beta\in\mathbb{R}^k:|\beta|=1\}$ denotes the unit sphere, and $f_\beta(\cdot)$ denotes the probability density function of $\beta' x_j$.
+
+### Lavergne and Patilea (2008) {-}
+
+Lavergne and Patilea (2008) show that the null hypothesis is equivalent to an infinite number of unconditional moment conditions
+
+$$H_0:\mathbb{E}(u_j|x_j)=0 \quad a.s \ \Leftrightarrow \ \underset{||\beta||=1}{max} \ \mathbb{E}(u_j\mathbb{E}(u_j|\beta' x_j)\omega(\beta' x_j))=0$$
+
+for any $\omega(\cdot)$ such that $\forall \beta\in\mathbb{R}^k$, $\omega(\beta' x_j)>0$ on the support of $\mathbb{E}(u_j|\beta' x_j)$. This condition resembles that of Zheng (1996) with $\beta' x_j$ replacing $x_j$ in an effort to remove the curse of dimensionality.
+
+### Lavergne and Patilea (2012) {-}
+
+Finally Lavergne and Patilea (2012) prove the equivalence between the null and an integrated moment condition
+
+$$H_0:\mathbb{E}(u_j|x_j)=0 \quad a.s \ \Leftrightarrow \int_B\mathbb{E}(\mathbb{E}^2(u_j|\beta' x_j)f_\beta(\beta' x_j))d\beta=0$$
+
+where $B\subseteq \mathbb{S}^k$ and $f_\beta(\cdot)$ denotes the density of $\beta' x_j$. This moment condition combines the integrated moments approaches of Bierens (1982) and Escanciano (2006) and the dimension reduction devise used in Lavergne and Patilea (2008).
+
+## Test statistics
+
+Each test relies on reformulating the null hypothesis into a moment condition for which an empirical counterpart exist. Thus the test statistics are sample analogs of the moments defining the null hypothesis, possibly multiplied by the sample size in order to obtain variation at the limit. Denote by $\hat{\theta}$ a consistent estimator of $\theta$ and let $\hat{u}_j=y_j-f(x_j,\hat{\theta})$ denote the residual for individual $j$. The five test statistics are derived in order.
+
+### Bierens (1982) {-}
+
+An empirical counterpart of the integrated conditional moment $\int_{\mathbb{R}^k}\left|\mathbb{E}(u_j exp(i\beta' x_j))\right|^2d\mu(\beta)$ of Bierens (1982) is
+
+$$ T_{icm}=\int_{\mathbb{R}^k}\left|\frac{1}{\sqrt{n}}\sum_{j=1}^n\hat{u}_j exp(i\beta' x_j)\right|^2d\mu(\beta) $$
+
+with some positive almost everywhere measure $\mu(\cdot)$ and where $|\cdot|$ denotes the modulus. Using properties of the modulus and of the Fourier transform it can then be shown that
+
+$$ T_{icm}=\frac{1}{n}\sum_{j,j'}\hat{u}_j\hat{u}_{j'}K(x_j-x_{j'})=\frac{1}{n}\hat{u}'W_{icm}\hat{u}$$
+
+where $K(\cdot)$ is the Fourier transform of $\mu(\cdot)$, $\hat{u}=(\hat{u}_1,\dots,\hat{u}_n)'$ is the $n\times 1$ vector of stacked residuals, and $W_{icm}$ is the matrix with entries $K(x_j-x_{j'})$ for any row $j$ and column $j'$. Although this statistic can be used as is, $\mu(\cdot)$ is typically assumed to be a symmetric probability measure which is strictly positive almost everywhere. This simplifies the asymptotic theory and the derivation of the test statistic in practice. Indeed as a consequence the Fourier transform of $\mu(\cdot)$ denoted as $K(\cdot)$ is a symmetric bounded density. Hence candidates for $K(\cdot)$ include logistic, triangular, normal, student, or Cauchy densities, see Johnson, Kotz and Balakrishnan (1995, section 23.3) and Dreier and Kotz (2002). Furthermore to control for scale, we impose that either the integral of $K(\cdot)$ to the square equals one or that the distribution associated to $K(\cdot)$ has variance one.
+
+### Zheng (1996) {-}
+
+Zheng (1996) test statistic is the sample analog of $\mathbb{E}(u_j\mathbb{E}(u_j|x_j)f(x_j))$ which is derived by estimating both the density $f(\cdot)$ of $x_j$ and the conditional mean $\mathbb{E}(u_j|x_j=\cdot)$ with Kernels. For any $\tilde{x}\in\mathbb{R}^k$ define
+
+$$ \hat{f}(\tilde{x})=\frac{1}{nh^k}\sum_j K\left(\frac{\tilde{x}-x_j}{h}\right), \qquad \hat{\mathbb{E}}(u_j|x_j=\tilde{x})=\frac{1}{nh^k}\sum_j \frac{u_j}{\hat{f}(\tilde{x})}K\left(\frac{\tilde{x}-x_j}{h}\right) $$
+
+where $K(\cdot)$ is a Kernel function which is nonnegative, symmetric, bounded, continuous and which integrates to one, and $h$ a bandwidth such that $h\underset{n\rightarrow+\infty}{\rightarrow}0$ and $nh^k\underset{n\rightarrow+\infty}{\rightarrow}+\infty$.  Then the test statistic is the sample analog of the moment $\mathbb{E}(u_j\mathbb{E}(u_j|x_j)f(x_j))$
+
+$$ T_{zheng}=\frac{1}{n}\sum_j \hat{u}_j\hat{\mathbb{E}}(u_{j'}|x_{j'}=x_j)\hat{f}(x_j)$$
+
+It can be rewritten as
+
+$$ T_{zheng}=\frac{1}{n(n−1)h^k}\sum_{j,j′\neq j}\hat{u}_j\hat{u}_{j′}K\left(\frac{x_j−x_{j′}}{h}\right)=\frac{1}{n(n−1)h^k}\hat{u}^′W_{zheng}\hat{u}$$
+
+where $W_{zheng}$ is a matrix whose diagonal elements are equal to zero and its other entries are equal to $K\left(\frac{x_j−x_{j′}}{h}\right)$ for any row $j$ any column $j′$ such that $j\neq j′$.
+
+### Escanciano (2006) {-}
+
+Escanciano (2006) test statistic is the sample analog of $\int_{\mathbb{S}^k\times\mathbb{R}} \mathbb{E}^2(u_j1\{\beta' x_j\leqslant l\})f_\beta(l)d\beta dl$ times $n$ which is derived by approximating the density $f_\beta(\cdot)$ by a probability mass function. Let $\hat{f}_\beta(l)=\frac{1}{n}\sum_r1\{\beta' x_r=l\}$ then the statistic is
+
+$$ T_{esca}=\int_{\mathbb{S}^k\times\mathbb{R}}\left(\frac{1}{\sqrt{n}}\sum_j \hat{u}_j1\{\beta' x_j\leqslant l\}\right)^2\hat{f}_\beta(l)d\beta dl $$
+
+It can be proven that it has the same form as the other test statistics
+
+$$ T_{esca} = \frac{1}{n}\sum_{j,j'}\hat{u}_j\hat{u}_{j'}\frac{1}{n}\sum_r\int_{\mathbb{S}^k}1\{\beta' x_j\leqslant \beta' x_r,\beta' x_{j'}\leqslant \beta' x_r\}d\beta=\frac{1}{n}\hat{u}'W_{esca}\hat{u}$$
+
+where $W_{esca}$ has elements $\frac{1}{n}\sum_r W_{esca,j,j',r}$ with $W_{esca,j,j',r}=\int_{\mathbb{S}^k}1\{\beta' x_j\leqslant \beta' x_r,\beta' x_{j'}\leqslant \beta' x_r\}d\beta$ for any row $j$ and column $j'$. Approximating the integrals in $W_{esca}$ is unnecessary because
+
+$$ W_{esca,j,j',r}=W_{esca,j,j',r}^{(0)}\frac{\pi^{k/2}-1}{\Gamma(k/2+1)}, \qquad W_{esca,j,j',r}^{(0)}=\left|\pi-arccos\left(\frac{(x_j-x_{r})'(x_{j'}-x_r)}{|x_j-x_{r}||x_{j'}-x_r|}\right)\right|$$
+
+See appendix B in Escanciano (2006) for more details. Note that $n^3$ operations are necessary to compute $W_{esca}$ which means that this statistic takes much more time to compute.
+
+### Lavergne and Patilea (2008) {-}
+
+Lavergne and Patilea (2008) consider a sample analog of the moment $\mathbb{E}(u_j\mathbb{E}(u_j|x_j)\omega(\beta' x_j))$ and replace $\omega(\cdot)$ by $f_\beta(\cdot)$ the density of $\beta' x_j$. In addition they replace $\beta$ by the value in the unit hypersphere which maximizes the moment taken to the square. This way the test is given the direction which best reject the null hypothesis under the alternative. Thus first define for any $t\in\mathbb{S}^k$
+
+$$ \mathcal{Q}(\beta)=\frac{1}{n(n-1)h}\sum_{j,j'\neq j}\hat{u}_j\hat{u}_{j'} K\left(\frac{\beta'(x_j-x_{j'})}{h}\right)$$
+
+where $K(\cdot)$ is a bounded symmetric density with bounded variation, $h$ is a bandwidth such that $h\underset{n\rightarrow +\infty}{\longrightarrow}0$ and $\frac{(nh^2)^{\delta}}{log(n)}\underset{n\rightarrow+\infty}{\longrightarrow}+\infty$ for some $\delta\in(0;1)$. $\mathcal{Q}(\beta)$ cannot be directly used, instead define $\hat{\beta}$ the direction which best captures the correlation between the residuals and the explanatory variables
+
+$$\hat{\beta}= \ \underset{\beta\in\mathbb{S}^k}{Argmax} \ |n\sqrt{h}\mathcal{Q}(\beta)−\alpha_n 1\{\beta\neq \beta^*\}|$$
+
+where $\beta^*$ represents a favored direction chosen a priori, and $\alpha_n\underset{n\rightarrow +\infty}{\rightarrow}0$ is the weight given to this favored direction. $\beta^*$ and $\alpha_n$ improve significantly the power properties of the test in small sample. Note that in practice the unit hypersphere $\mathbb{S}^k$ is approximated by a finite number of points. Thus the test statistic is the criterion evaluated at $\hat{\beta}$
+
+$$T_{pala}=\mathcal{Q}(\hat{\beta})=\frac{1}{n(n−1)h}\sum_{j,j′\neq j}\hat{u}_j\hat{u}_jK\left(\frac{\hat{\beta}′(x_j−x_{j′})}{h}\right)=\frac{1}{n(n−1)h}\hat{u}^′W_{pala}\hat{u}$$
+
+where $W_{pala}$ is a matrix with diagonal elements equal to zero and its other entries equal to $K\left(\frac{\hat{β}′(x_j−x_j)}{h}\right)$ for any row $j$ and column $j′$ such that $j\neq j′$.
+
+### Lavergne and Patilea (2012) {-}
+
+Finally Lavergne and Patilea (2012) use the sample analog of $\int_B\mathbb{E}(\mathbb{E}^2(u_j|\beta' x_j)f_\beta(\beta' x_j))d\beta=0$ for some $B\subseteq\mathbb{S}^k$ as a test statistic. To derive it notice that an empirical counterpart of $\mathbb{E}(\mathbb{E}^2(u_j|\beta' x_j)f_\beta(\beta' x_j))$ is $\mathcal{Q}(\beta)$ as defined in previously. Hence their test statistic which they call smooth integrated conditional moment statistic writes
+
+$$ T_{sicm}=\int_B\mathcal{Q}(\beta)d\beta=\int_B\frac{1}{n(n-1)h}\sum_{j,j'\neq j}\hat{u}_j\hat{u}_{j'}K\left(\frac{\beta'(x_j-x_{j'})}{h}\right)d\beta=\frac{1}{n(n-1)h}\hat{u}'W_{sicm}\hat{u}$$
+
+where $W_{sicm}$ has diagonal elements equal to zero and its other elements are equal to $\int_BK\left(\frac{\beta'(x_j-x_{j'})}{h}\right)d\beta$ for any row $j$ and any column $j'\neq j$. Clearly $T_{sicm}$ is a smooth version of $T_{icm}$ because of the bandwidth $h$. Furthermore it is also a smooth version of $T_{pala}$ in the sense that instead of being based on the squared error in the worst direction of $\beta' x_j$, it is based on a continuum of directions. In practice to compute the integral a finite number of points are drawn randomly from $B$ and $B$ doesn't have to be the whole unit hypersphere $\mathbb{S}^k$. For instance half hyperspheres can be considered such as $\{\beta\in\mathbb{R}^k:\beta_m\geqslant 0,||\beta||=1\}$ where $\beta_m$ denotes the $m$-th element of the vector $\beta$.
+
+## Normalization
+
+The five test statistics can be normalized. Not only does this improve the finite sample properties of the tests, but it allows to use Gaussian asymptotics when deciding to reject the null hypothesis with the tests of Zheng (1996), Lavergne and Patilea (2008), and Lavergne and Patilea (2012). This is extremely useful in large samples instead of using the bootstrap.
+
+The normalized test statistics are of the following form:
+
+$$ \hat{T}_{icm}=\hat{u}^′\hat{W}_ {icm}\hat{u}, \qquad \hat{W}_{icm}=W_{icm}\sqrt{2\sum_{j,j′}\hat{\sigma}^2_j\hat{\sigma}^2_{j′}K^2(x_j−x_{j′})}$$ 
+
+$$ \hat{T}_{zheng}=\hat{u}^′\hat{W}_{zheng}\hat{u},\qquad \hat{W}_{zheng}=W_{zheng}\sqrt{2\sum_{j,j′\neq j}\hat{\sigma}^2_j\hat{\sigma}^2_{j'}K^2\left(\frac{x_j−x_{j′}}{h}\right)}$$
+
+$$ \hat{T}_{esca}=\hat{u}′\hat{W}_{esca}\hat{u}, \qquad \hat{W}_{esca}=W_{esca}\sqrt{2\sum_{j,j′}\hat{\sigma}_j^2\hat{\sigma}^2_{j′}\left(\frac{1}{n}\sum_r\int_{\mathbb{S}^k}1\{\beta′x_j\leqslant \beta′x_r,\beta′x_{j′}⩽\beta′x_r\}d\beta\right)^2} $$
+
+$$ \hat{T}_{pala}=\hat{u}^′\hat{W}_{pala}\hat{u}, \qquad \hat{W}_{pala}=W_{pala}\sqrt{2\sum_{j,j′\neq j}\hat{\sigma}^2_j\hat{\sigma}_{j'}^2K^2\left(\frac{\hat{β}′(x_j−x_{j′})}{h}\right)}$$
+
+$$\hat{T}_{sicm}=\hat{u}^′\hat{W}_{sicm}\hat{u}, \qquad \hat{W}_{sicm}=W_{sicm}\sqrt{2\sum_{j,j′\neq j}\hat{\sigma}_j^2\hat{\sigma}^2_{j'}\left(\int_BK\left(\frac{\beta′(x_j−x_{j′})}{h}\right)d\beta\right)^2}$$
+
+where $\hat{\sigma}_j^2$ controls for the conditional variance of the error uj. A naive approach to the normalization which works very well in large sample is to directly replace $\hat{\sigma}_j^2$ by the squared residuals $\hat{u}_j^2$. Another approach to the normalization is to replace $\hat{\sigma}_j^2$ by an estimator such the as the nonparametric kernel variance estimator of Yin, Geng, Li and Wang (2010) which writes
+
+$$ \hat{\sigma}^2(\tilde{x})=\frac{\frac{1}{nh_v}\sum_j(y_j−\overline{y}(\tilde{x}))^2K\left(\frac{\tilde{x}−x_j}{h_v}\right)}{\frac{1}{nh_v}\sum_jK\left(\frac{\tilde{x}−x_j}{h_v}\right)}, \qquad \overline{y}(\tilde{x})=\frac{\frac{1}{nh_v}\sum_j y_jK\left(\frac{\tilde{x}−x_j}{h_v}\right)}{\frac{1}{nh_v}\sum_j K\left(\frac{\tilde{x}−x_j}{h_v}\right)} $$
+
+where $K$ is a Kernel function and $h_v$ is a bandwidth which can be different from $h$.
+
+Both the naive and nonparametric approaches to the normalization are implemented.
+
+## Rejection rules
+
+To decide whether to reject or not the null hypothesis we need to compute quantiles of the distribution of each statistic under the null conditional on $x≡=(x_1,\dots,x_n)′$. Then $H_0$ is rejected at level 5\% if the test statistic is above the quantile 95\% of its distribution under the null. To compute these quantiles we propose two solutions.
+
+First we consider computing the quantiles using the fixed design bootstrap. $x$ is held fixed so for each test statistic their central W is held fixed, and a n×1 vector of residuals ˆub is drawn using the fixed design wild bootstrap of Wu (1986) or the smooth conditional moment bootstrap of Gozalo (1997). It will also control for potential heteroskedasticity. Using this bootstrapped vector of residuals and the maintained central matrix $W$ a bootstrapped statistic can be computed. After repeating this operation many times we obtain a vector of bootstrapped statistics. The quantiles of this vector can then be used to reject or not $H_0$. As an example if the test we consider is that of Bierens (1982) a bootstrapped statistic is
+
+$$ T_{icm,b}=\frac{1}{n}\hat{u}^′_bW_{icm}\hat{u}_b $$
+
+By repeating this operation B times we obtain B bootstrapped statistics $(T_{icm,b})_{b=1}^B$ which mimic the behavior of $T_{icm}$ under the null hypothesis. Consequently the parametric specification will be rejected at level 5\% if $T_{icm}>q_{95\%}$ where $q_{95\%}$ is the 95\% quantile of $(T_{icm,b})^B_{b=1}$. The same procedure can be applied to other tests and their normalized versions to decide whether or not to reject the null hypothesis.
+
+Second we consider using the quantiles of the standard normal. As mentioned, the normalized versions of the statistics of Zheng (1996), Lavergne and Patilea (2008), and Lavergne and Patilea (2012) are asymptotically standard normal. Thus if one of these normalized test statistics are used, we can use the quantiles of a standard normal to reject or not $H_0$. As an example if the test we consider is that of Zheng (1996) with a normalization then the parametric specification will be rejected at level 5\% if $|\hat{T}_{zheng}|>1.96$.
+
+## Validity, consistency and power properties
+
+Each test can be proven to be valid, as in under the null hypothesis the probability to reject the null converges to nominal level, and to be consistent, as in under any fixed alternative the probability to reject the null converges to one.
+
+But these five tests differ significantly in terms of power in practice. The test of Zheng (1996) seem to be the least powerful test in practice, it has no power against Pitman alternatives and has difficulty rejecting the null when the number $k$ of exogenous variables is large. The test of Bierens (1982) possesses more than trivial power against Pitman alternatives but it also has trouble rejecting the null when $k$ is large. The test of Escanciano (2006) does not depend on a choice of weighting function and does not require numerical integration however to derive its statistic it requires $n^3$ operations making it very slow and hard to apply in practice. In addition its power however largely depends on the true alternative and is low when $k$ is large. The tests of Lavergne and Patilea (2008), and Lavergne and Patilea (2012) are more powerful than the other two when $k$ is large because of their use of a continuum of single index $\beta^′x_j$ to summarize the correlation between $u_j$ and $x_j$. At the same time when $k$ is small the two tests are at least as powerful as the others. As mentioned the power of Lavergne and Patilea (2008) test comes from the "worst" single-index alternative whereas the power of Lavergne and Patilea (2012) test comes from a continuum of single-index alternatives. Thus in practice under the alternative the nature of the correlation between $u_j$ and $x_j$ will determine which of these two tests is more powerful.
+
+See the references for more details.
+
+# Using `SpeTestNP`
+
+Previously we have described the principle behind the five nonparametric specification tests, how to derive the test statistics and the rejection rules, and discussed their properties. Next we show how to use `SpeTestNP` to test parametric models in practice, with first the installation, second a description of how to use the test, third a thorough description of the arguments of the package main function `SpeTest`, and fourth an illustration to determine the true shape of expected wages conditional on years of education and age.
+
+## Installation
+
+To install `SpeTestNP` from CRAN simply run the following command:
+
+```{r eval = F}
+install.packages("SpeTestNP")
+
+```
+
+To install `SpeTestNP` from Github the package `devtools` should be installed and the following commands should be run:
+
+```{r eval = F}
+install.packages("devtools")
+
+library("devtools")
+
+install_github("HippolyteBoucher/SpeTestNP")
+
+```
+
+To choose where and how the package is installed check `help(install_github)` and `help(install.packages)`. Alternatively users can download the package and directly install it with the CMD. `SpeTestNP` requires the packages `stats` (already installed and loaded by default in Rstudio), `foreach`, `parallel` and `doParallel` (if parallel computing is used to generate the vector) to be installed.
+
+## Testing with `SpeTestNP`
+
+Recall the true model and the model induced by the parametric specification characterized by $\mathcal{F}=\{f(\cdot,\tilde{\theta}):\tilde{\theta}\in\Theta\subset\mathbb{R}^k\}$
+
+$$ y_j=g(x_j)+\varepsilon_j, \qquad y_j=f(x_j,\theta)+u_j $$ where $\mathbb{E}(y_j|x_j)=g(x_j) \ a.s$ and $\theta= \ \underset{\tilde{\theta}\in\Theta}{Argmin} \ \mathbb{E}((y_j-f(x_j,\tilde{\theta}))^2)$.
+
+Then to test the parametric specification or equivalently to test $H_0:\mathbb{E}(u_j|x_j)=0 \ a.s$ the function `SpeTest` of the package `SpeTestNP` can be directly used by filling the first argument `eq` with a fitted model of class `lm` or `nls`. In case the parametric specification is linear or can be rewritten in a linear form `eq` should be an object of class `lm`. In case of non-linear models `eq` should be an object of class `nls` which stands for non-linear least squares (from the package `stats`). Note that in order to perform the specification test by feeding `SpeTest` with an `nls` model then the arguments in `nls` must be given in the right order. Then by running the following command the parametric specification characterized by $\mathcal{F}$ is tested
+
+```{r eval = F}
+  SpeTest(eq)
+
+```
+
+The function returns an object of class `STNP` which when printed with `print` or `print.STNP` returns the test statistic and its p-value. An object of type `STNP` is a list which not only contains the test statistic `stat` and its p-value `pval` but also the type of the test `type`, the rejection rule `rejection`, the test statistic normalization `norma`, the Kernel function denoted as $K(\cdot)$ used to compute the test statistic central matrix `ker`, the standardization method of test the statistic central matrix `knorm`, the type of bootstrap used to compute the p-value `boot`, the number of bootstrap samples used to compute the p-value `nboot`, the bandwidths `cch` and `hv`, etc... To obtain a summary of the test and its options the method `summary` or `summary.STNP` can be used on objects of class `STNP`.
+
+By default the test of Bierens (1982) with the standard normal density as the central matrix function is applied and the test p-value is obtained using 50 wild bootstrap samples with a naive estimator of the conditional variance of the errors. Among many options, by changing the argument `rejection` from `bootstrap` (the default) to `asymptotics` if `type = "zheng"` or `type = "pala"` or `type = "sicm"` the test p-value is then based on the asymptotic normality of these normalized test statistics under the null. In addition by default the test statistic is not normalized as in by default the denominator in $T_{zheng}$, $T_{pala}$ and $T_{sicm}$ is set to one. This can be changed by setting `norma = "naive"` to normalize the statistic using a naive estimator of the errors conditional variance, or by setting `norma = "np"` to normalize the statistic using a nonparametric estimator of the errors conditional variance. If `rejection = "bootstrap"` setting `para` to `TRUE` greatly speeds up the computation of the p-value by deriving bootstrapped statistics in parallel. For more details refer to the next section or `help(SpeTest)`.
+
+Note that the functions `SpeTest_Stat` and `SpeTest_Dist` are also available. Both functions take similar arguments to `SpeTest`. `SpeTest_Stat` computes the specification test statistic, while `SpeTest_Dist` generates a vector of size `nboot` from the specification test statistic distribution under the null hypothesis using the bootstrap. The argument `para` is also available to `SpeTest_Dist`. `SpeTest_Stat` and `SpeTest_Dist` allow to easily perform simulation exercises.
+
+## Arguments description and additional features
+
+To be more specific about the arguments of the function `SpeTest`:
+
+-   Argument `eq` should be the fitted parametric model of class `lm` or `nls`of the parametric specification of interest $\mathcal{F}$
+
+-   Argument `type` refers to the type of the test
+
+    If `type = "icm"` the test of Bierens (1982) is performed (default)
+
+    If `type = "zheng"` the test of Zheng (1996) is performed
+
+    If `type = "esca"` the test of Escanciano (2006) is performed, significantly increases computing time
+
+    If `type = "pala"` the test of Lavergne and Patilea (2008) is performed
+
+    If `type = "sicm"` the test of Lavergne and Patilea (2012) is performed
+
+-   Argument `rejection` refers to the rejection rule
+
+    If `rejection = "bootstrap"` the p-value of the test is based on the bootstrap (default)
+
+    If `rejection = "asymptotics"` and `type = "zheng"` or `type = "esca"` or `type = "sicm"` the p-value of the test is based on asymptotic normality of the normalized version of one of these test statistic under the null hypothesis
+
+    If `type = "icm"` or `type = "esca"` the argument `rejection` is ignored and the p-value is based on the bootstrap
+
+-   Argument `norma` refers to the normalization of the test statistic
+
+    If `norma = "no"` the test statistic is not normalized (default)
+
+    If `norma = "naive"` the test statistic is normalized with a naive estimator of the errors variance
+
+    If `norma = "np"` the test statistic is normalized with a nonparametric estimator of the errors variance
+
+-   Argument `boot` refers to the bootstrap method used to compute the test p-value when `rejection = "bootstrap"`
+
+    If `boot = "wild"` the wild bootstrap of Wu (1986) is used (default)
+
+    If `boot = "smooth"` the smooth conditional moments bootstrap of Gozalo (1997) is used
+
+-   Argument `nboot` is the number of bootstraps used to compute the test p-value, by default \`nboot = 50}
+
+-   Argument `para` determines if parallel computing is used or not when `rejection = "bootstrap"`
+
+    If `para = FALSE` parallel computing is not used to generate the bootstrap samples to compute the test p-value (default)
+
+    If `para = TRUE` parallel computing is used to generate the bootstrap samples to compute the test p-value, significantly decreases computing time, makes use of all CPU cores except one
+
+-   Argument `ker` refers to the Kernel function used in the central matrix and for the nonparametric covariance estimator if there is any
+
+    If `ker = "normal"` the central matrix Kernel function is the normal p.d.f (default)
+
+    If `ker = "triangle"` the central matrix Kernel function is the triangular p.d.f
+
+    If `ker = "logistic"` the central matrix Kernel function is the logistic p.d.f
+
+    If `ker = "sinc"` the central matrix Kernel function is the sine cardinal function
+
+-   Argument `knorm` refers to the normalization of the Kernel function
+
+    If `knorm = "sd"` then the standard deviation using the Kernel function equals 1 (default)
+
+    If `knorm ="sq"` then the integral of the squared Kernel function equals 1
+
+-   Argument `cch` is the central matrix Kernel bandwidth
+
+    If `type = "icm"` or `type = "esca"` then `cch` always equals `1`
+
+    If `type = "zheng"` the `"default"` bandwidth is the scaled rule of thumb: `cch = 1.06*n^(-1/5)`
+
+    If `type = "sicm"` and `type = "pala"` the `"default"` bandwidth is the scaled rule of thumb: `cch = 1.06*n^(-1/(4+k))` where `k` is the number of regressors
+
+    The user may change the bandwidth when `type = "zheng"`, `type = "sicm"` or `type = "pala"`.
+
+-   Argument `hv` is the bandwidth the nonparametric errors covariance estimator when `norma = "np"` or `rejection = "bootstrap"` and `boot = "smooth"`
+
+    By `"default"` the bandwidth is the scaled rule of thumb `hv = 1.06*n^(-1/(4+k))`
+
+-   Argument `nbeta` refers to the number of elements $\beta$ used to represent the unit hypersphere $\mathcal{S}^k$ when `type = "pala"` or `type = "sicm"`
+
+    Computing time increases as `nbeta` gets larger
+
+    By `"default"` it is equal to 20 times the square root of the number of exogenous control variables
+
+-   Argument `direct` refers to the default "directions" for the tests of Lavergne and Patilea (2008) and Lavergne and Patilea (2012)
+
+    If `type = "pala"`, `direct` is the favored direction for $\beta$, by `"default"` it is the OLS estimator if `class(eq) = "lm"`
+
+    If `type = "sicm"`, `direct` is the initial direction for $\beta$. This direction should be a vector of `0` (for no direction), `1` (for positive direction) and `-1` (for negative direction)
+
+    For example, `c(1,-1,0)` indicates that the user thinks that the 1st regressor has a positive effect on the dependent variable, that the 2nd regressor has a negative effect on the dependent variable, and that he has no idea about the effect of the 3rd regressor
+
+    By `"default"` no direction is given to the hypersphere
+
+-   Argument `alphan` refers to the weight given to the favored direction for $\beta$ when `type = "pala"`
+
+    By `"default"` it is equal to `log(n)*n^(-3/2)`
+
+Before changing the default options of arguments `norma`, `direct` and `alphan` we strongly advise the user to read the tests references.
+
+## Illustration
+
+To finish we use data on 1,000 individuals from the Current Population Survey as in Stock and Watson (2007) to find the true shape of their expected earnings conditional on their years of education and their age using the test of Bierens (1982).
+
+```{r}
+
+    library(SpeTestNP)
+    library(AER)
+
+    ### Loading the data and taking a first look
+
+    data( CPSSW8 )
+    
+    summary ( CPSSW8 )
+    
+```
+
+Thus the dependent variable we consider is earnings and the explanatory variables we use to build the conditional expectation are education and age. First we fit a linear specification of conditional earnings.
+
+```{r}
+
+    lm_lin <- lm( earnings ~ age + education,
+                      data = CPSSW8[1:1000,] )
+
+    summary ( lm_lin )
+
+```
+
+Both variables are very significant. Then we perform two tests of the linear specification, the bootstrap test of Bierens (1982) using the bootstrap decision rule, and the asymptotic test of Zheng (1996) with a naive normalization.
+
+```{r}
+
+    SpeTest( lm_lin , type = "icm" , rejection = "bootstrap" )
+    SpeTest( lm_lin , type = "zheng" , rejection = "asymptotics" )
+
+```
+
+The linear specification is rejected at level below 1\% for the test of Bierens (1982) and at level below 10\% for the test of Zheng (1996). So we fit a quadratic specification and perform the same tests.
+
+```{r}
+
+    lm_quad <- lm( earnings ~ age + I(age^2) + education + I(education^2),
+                      data = CPSSW8[1:1000,] )
+
+    summary( lm_quad )
+    
+    SpeTest( lm_quad , type = "icm" , rejection = "bootstrap" )
+    SpeTest( lm_quad , type = "zheng" , rejection = "asymptotics")
+
+```
+
+Both age and education to the square are very significant. In addition the p-values of both tests are above 15\% so we cannot reject the quadratic specification. Finally we test a highly non-linear specification with age, age to the square, education, education to the square, and their products included as controls:
+
+```{r}
+
+    lm_nlin <- lm( earnings ~ age + I(age^2) + education + I(education^2) 
+                       + I(education*age) + I(education^2*age)
+                       + I(education*age^2) + I(education^2*age^2),
+                       data= CPSSW8[1:1000,] )
+
+    summary( lm_nlin )
+    
+    SpeTest( lm_nlin , type = "icm" , rejection = "bootstrap" )
+    SpeTest( lm_nlin , type = "zheng" , rejection = "asymptotics")
+
+```
+
+This time none of the variables are considered (individually) significant. This does not mean that this specification is wrong, in fact it nests the quadratic specification. Note that the p-value of the test of Bierens (1982) is very high while the p-value of asymptotic test of Zheng (1996) is 3\%. This difference can be explained by the fact that both tests have important size distortions when the number of explanatory variables is "large". Thus we perform a final check with the asymptotic tests of Lavergne and Patilea (2008) and Lavergne and Patilea (2012).
+
+```{r}
+
+    SpeTest( lm_nlin, type = "pala", rejection = "asymptotics", nbeta = 40 )
+    SpeTest( lm_nlin, type = "pala", rejection = "bootstrap" , nboot = 10 , nbeta = 10 )
+
+```
+
+Both p-values are high so we cannot reject this highly non-linear specification.
+
+# References
+
+H.J. Bierens (1982), ["Consistent Model Specification Test"](https://www.sciencedirect.com/science/article/pii/0304407682901051), *Journal of Econometrics*, 20 (1), 105-134
+
+I. Dreier and S. Kotz (2002), ["A note on the characteristic function of the t-distribution"](https://www.sciencedirect.com/science/article/abs/pii/S0167715202000329), *Statistics & Probability Letters*, 57 (3), 221-224
+
+J.C. Escanciano (2006), ["A Consistent Diagnostic Test for Regression Models Using Projections"](https://www.jstor.org/stable/4093212), *Econometric Theory*, 22 (6), 1030-1051
+
+P.L. Gozalo (1997), ["Nonparametric Bootstrap Analysis with Applications to Demographic Effects in Demand Functions"](https://www.sciencedirect.com/science/article/pii/S0304407697865712), *Journal of Econometrics*, 81 (2), 357-393
+
+Johnson, Kotz and Balakrishnan (1995), ["Continuous Univariate Distributions"](https://www.wiley.com/en-us/Continuous+Univariate+Distributions%2C+Volume+2%2C+2nd+Edition-p-9780471584940), volume 2, *Wiley Series in Probability and Statistics: Applied Probability and Statistics*, Wiley & Sons 
+
+P. Lavergne and V. Patilea (2008), ["Breaking the Curse of Dimensionality in Nonparametric Testing"](https://www.sciencedirect.com/science/article/pii/S0304407607001601), *Journal of Econometrics*, 143 (1), 103-122
+
+P. Lavergne and V. Patilea (2012), ["One for All and All for One: Regression Checks with Many Regressors"](https://www.tandfonline.com/doi/full/10.1198/jbes.2011.07152), *Journal of Business & Economic Statistics*, 30 (1), 41-52
+
+J.H. Stock and M.W. Watson (2006), ["Why Has U.S. Inflation Become Harder to Forecast?"](https://www.nber.org/papers/w12324), *Journal of Money, Credit and Banking*, 39 (1), 3-33
+
+C.F.J. Wu (1986) ["Jackknife, bootstrap and other resampling methods in regression analysis (with discussion)"](https://www.jstor.org/stable/2241454), *National Bureau of Economic Research Working Paper*
+
+J. Yin, Z. Geng, R. Li, H. Wang (2010), ["Nonparametric covariance model"](https://www.jstor.org/stable/24309002), *Statistica Sinica*, 20 (1), 469-479
+
+J.X. Zheng (1996), ["A Consistent Test of Functional Form via Nonparametric Estimation Techniques"](https://econpapers.repec.org/article/eeeeconom/v_3a75_3ay_3a1996_3ai_3a2_3ap_3a263-289.htm), *Journal of Econometrics*, 75 (2), 263-289
